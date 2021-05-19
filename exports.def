@@ -1,0 +1,4 @@
+LIBRARY	"UnequipQuiver"
+EXPORTS
+SKSEPlugin_Query
+SKSEPlugin_Load
