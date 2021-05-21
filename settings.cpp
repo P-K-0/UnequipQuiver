@@ -49,31 +49,31 @@ namespace UQ_Settings {
 
 		READSETTINGT(bEquipStronger);
 
-		KeysList = ParseKeywords(ReadSetting("sKeywords", StrDefaultKeywords));
-		
-		std::sort(KeysList.begin(), KeysList.end());
+		ParseKeywords(ReadSetting("sKeywords", StrDefaultKeywords));	
 	}
 
-	UnequipQuiver_Settings::WeapKeywords UnequipQuiver_Settings::ParseKeywords(const std::string& str)
+	void UnequipQuiver_Settings::ParseKeywords(const std::string& str)
 	{
-		WeapKeywords tmpKeys;
 		std::string tmpStr = str;
-		size_t f;
+		size_t found{ 0 };
+
+		KeysList.clear();
 
 		while (tmpStr.size() > 0) {
 
-			f = tmpStr.find(",");
+			found = tmpStr.find(",");
 
-			if (f != std::string::npos) {
-				tmpKeys.push_back(tmpStr.substr(0, f));
-				tmpStr = tmpStr.substr(f + 1);
+			if (found != std::string::npos) {
+				KeysList.push_back(tmpStr.substr(0, found));
+				tmpStr = tmpStr.substr(found + 1);
 			} else {
-				tmpKeys.push_back(tmpStr);
+				KeysList.push_back(tmpStr);
 				tmpStr = "";
 			}
 		}
 
-		return tmpKeys;
+		if (!KeysList.empty())
+			std::sort(KeysList.begin(), KeysList.end());
 	}
 
 	UnequipQuiver_Settings UQSettings;

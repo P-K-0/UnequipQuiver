@@ -31,10 +31,10 @@ namespace UQ_Saves {
 	};
 
 	inline int UQFlagsToInt(const UQFlags& f) { return static_cast<int>(f); }
+	
+	static const std::vector<std::string> str_flag = { "", "loaded", "saved", "deleted" };
 
 	class UQSaves {
-
-		const std::vector<std::string> str_flag = { "", "loaded", "saved", "deleted" };
 
 	public:
 

@@ -188,12 +188,7 @@ namespace UQ_Saves {
 
 			std::string sLocalSavePath = UQ_Settings::ReadSetting("sLocalSavePath", "", "General", skyrim_ini);
 
-			if (!sLocalSavePath.empty())
-				file_path += sLocalSavePath;
-			else
-				file_path += "Saves\\";
-
-			return file_path;
+			return file_path += !sLocalSavePath.empty() ? sLocalSavePath : "Saves\\";
 		}
 
 		return "";

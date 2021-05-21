@@ -29,10 +29,9 @@ namespace UQ_Settings {
 	constexpr bool Default_bEquipStronger = false;
 	constexpr QuiverReEquipType Default_iReEquipType = QuiverReEquipType::QRE_LAST;
 
-	class UnequipQuiver_Settings {
+	static const std::string StrDefaultKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
 
-		const std::string StrDefaultKeywords =
-			"WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
+	class UnequipQuiver_Settings {
 
 		using WeapKeywords = std::vector<std::string>;
 		using size_type = WeapKeywords::size_type;
@@ -67,6 +66,7 @@ namespace UQ_Settings {
 
 		const std::string& operator[](int i) const { return KeysList[i]; }
 		const size_type size() const { return KeysList.size(); }
+		const bool empty() const { return KeysList.empty(); }
 
 		const iterator begin() { return KeysList.begin(); }
 		const iterator end() { return KeysList.end(); }
@@ -84,12 +84,13 @@ namespace UQ_Settings {
 		bool bSavefile{ Default_bSavefile };
 		bool bMultiBow{ Default_bMultiBow };
 		bool bEquipStronger{ Default_bEquipStronger };
+		
 		std::string sSavePath;
 
 		QuiverReEquipType iReEquipType{ Default_iReEquipType };
 	
 		WeapKeywords KeysList;
-		WeapKeywords ParseKeywords(const std::string& str);
+		void ParseKeywords(const std::string& str);
 	};
 
 	extern std::string ReadSetting(const std::string& key, const std::string& def, const std::string& app = "Main", const std::string& filename = UnequipQuiverIni);

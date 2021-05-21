@@ -95,7 +95,7 @@ namespace EventsDispatch {
 
 		TESObjectWEAP *weap = nullptr;
 
-		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)))
+		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)) && !UQSettings.empty())
 			for (int i = 0; i < weap->keyword.numKeywords; i++) {
 
 				BGSKeyword *keyword = weap->keyword.keywords[i];
