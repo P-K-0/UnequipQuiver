@@ -88,10 +88,7 @@ extern "C" {
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse)
 	{
-		if (skse_msg_interface)
-			skse_msg_interface->RegisterListener(Plug_Handle, "SKSE", MsgCallback);
-
-		return true;
+		return skse_msg_interface ? skse_msg_interface->RegisterListener(Plug_Handle, "SKSE", MsgCallback) : false;
 	}
 }
 
