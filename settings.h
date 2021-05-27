@@ -45,7 +45,7 @@ namespace UQ_Settings {
 		UnequipQuiver_Settings operator=(const UnequipQuiver_Settings&&) = delete;
 
 		explicit UnequipQuiver_Settings();
-		~UnequipQuiver_Settings() { KeysList.clear(); }
+		~UnequipQuiver_Settings() {}
 
 		const bool IsEnabledPC() const { return bEnablePC; }
 		const bool IsEnabledNPC() const { return bEnableNPC; }
