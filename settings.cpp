@@ -49,7 +49,7 @@ namespace UQ_Settings {
 
 		READSETTINGT(bEquipStronger);
 
-		ParseKeywords(ReadSetting("sKeywords", StrDefaultKeywords));	
+		ParseKeywords(ReadSetting("sKeywords", Default_sKeywords));	
 	}
 
 	void UnequipQuiver_Settings::ParseKeywords(const std::string& str)
