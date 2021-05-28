@@ -58,5 +58,5 @@ namespace UQ_Saves {
 		std::string file_path; 
 	};
 
-	extern void LoadSaves(const void * filename, UQFlags flags); 
+	extern void LoadSaves(const void * const filename, UQFlags flags); 
 };
