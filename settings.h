@@ -28,8 +28,7 @@ namespace UQ_Settings {
 	constexpr bool Default_bMultiBow = false;
 	constexpr bool Default_bEquipStronger = false;
 	constexpr QuiverReEquipType Default_iReEquipType = QuiverReEquipType::QRE_LAST;
-
-	static const std::string StrDefaultKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
+	constexpr char *Default_sKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
 
 	class UnequipQuiver_Settings {
 
