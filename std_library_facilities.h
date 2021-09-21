@@ -7,5 +7,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <algorithm>
+#include <regex>
+#include <functional>
 
 #include <Shlobj.h>

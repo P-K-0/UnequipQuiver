@@ -39,14 +39,40 @@ namespace UQ_Saves {
 		return ifs;
 	}
 
+#if UNEQUIPQUIVERSE_EXPORTS
+#define LIGHT_MOD 0xfe000000
+
 #define GETVALUE_MOD(p, name, id) \
 			std::string name; \
 			UInt32 id{ 0 }; \
 			ifs >> name >> id; \
 			const ModInfo *p = datahandler->LookupModByName(name.c_str()); \
 			if (p) \
-				id |= (static_cast<UInt32>(p->modIndex) << 24); 
+				id |= (p->IsLight() ? LIGHT_MOD | (static_cast<UInt32>(p->lightIndex) << 12) : static_cast<UInt32>(p->modIndex) << 24);  
+#else
+#define GETVALUE_MOD(p, name, id) \
+			std::string name; \
+			UInt32 id{ 0 }; \
+			ifs >> name >> id; \
+			const ModInfo *p = datahandler->LookupModByName(name.c_str()); \
+			if (p) \
+				id |= (static_cast<UInt32>(p->modIndex) << 24);  
+#endif
 
+#if UNEQUIPQUIVERSE_EXPORTS
+#define SETVALUE_MOD(tid, id) \
+					UInt32 tid { id }; \
+					bool is_light_ ## id = (tid & 0xff000000) == LIGHT_MOD; \
+					mod = is_light_ ## id ? datahandler->modList.loadedMods[tid >> 12] : datahandler->modList.loadedMods[tid >> 24]; \
+					if (mod) { \
+						tid &= is_light_ ## id ? 0xfff : 0xffffff; \
+						ofs << mod->name << tid; \
+					} \
+					else { \
+						tid = 0; \
+						ofs << "Skyrim.esm" << tid; \
+					}
+#else
 #define SETVALUE_MOD(tid, id) \
 					UInt32 tid { id }; \
 					mod = datahandler->modList.loadedMods[tid >> 24]; \
@@ -58,6 +84,7 @@ namespace UQ_Saves {
 						tid = 0; \
 						ofs << "Skyrim.esm" << tid; \
 					}
+#endif	
 
 	UQSaves::UQSaves(const char * filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last)
 	{
@@ -77,14 +104,13 @@ namespace UQ_Saves {
 		case UQFlags::uqLoad:
 			ret = Read(file_bin, last);
 			break;
-		case UQFlags::uqSave:	
+		case UQFlags::uqSave:
 			ret = Write(file_bin, last);
 			break;
-		case UQFlags::uqDelete:
+		case UQFlags::uqDelete: 
 			ret = Delete(file_bin);
 			break;
-		case UQFlags::uqNothing: 
-			return;
+		case UQFlags::uqNothing:
 		default:
 			return;
 		}
@@ -186,7 +212,7 @@ namespace UQ_Saves {
 			std::string skyrim_ini{ file_path };
 			skyrim_ini += "skyrim.ini";
 
-			std::string sLocalSavePath = UQ_Settings::ReadSetting("sLocalSavePath", "", "General", skyrim_ini);
+			std::string sLocalSavePath = UQ_Settings::ReadSettingIni("sLocalSavePath", "", "General", skyrim_ini);
 
 			return file_path += !sLocalSavePath.empty() ? sLocalSavePath : "Saves\\";
 		}

@@ -52,12 +52,12 @@ namespace EventsDispatch {
 				m_a.clear();
 		}
 
-		template<typename Func>
+		template<typename Func = std::function<void(T, T, T)>>
 		void Visit(Func f)
 		{
 			for (UInt32 i = 0; i < ammo.size(); i++) {
 				f(0, ammo[i].second, i);
-
+				
 				auto& b = multi_ammo[i];
 				for (auto& it = b.begin(); it != b.end(); it++)
 					f((*it).first, (*it).second.second, i);
@@ -74,23 +74,15 @@ namespace EventsDispatch {
 
 	extern LastAmmoEquipped lastAmmo;
 
-	class TES_EquipEvent : public BSTEventSink<TESEquipEvent> {
+#define DECL_CLASS_EVENT(ev) \
+	class TES_ ## ev : public BSTEventSink<TES ## ev> { \
+	public: \
+		virtual EventResult ReceiveEvent(TES ## ev * evn, EventDispatcher<TES ## ev> * dispacther); \
+	}; \
+	static TES_ ## ev ev;
 
-	public:
-
-		TES_EquipEvent() {}
-
-		virtual EventResult ReceiveEvent(TESEquipEvent * evn, EventDispatcher<TESEquipEvent> * dispatcher);
-	};
-
-	class TES_ObjectLoadedEvent : public BSTEventSink<TESObjectLoadedEvent> {
-
-	public:
-
-		TES_ObjectLoadedEvent() {}
-
-		virtual EventResult ReceiveEvent(TESObjectLoadedEvent * evn, EventDispatcher<TESObjectLoadedEvent> * dispatcher);
-	};
+	DECL_CLASS_EVENT(EquipEvent);
+	DECL_CLASS_EVENT(LoadGameEvent);
 
 	enum class TypeWeapon {
 		Nothing,

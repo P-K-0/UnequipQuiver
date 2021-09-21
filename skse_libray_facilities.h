@@ -18,6 +18,8 @@
 #include "skse/GameData.h"
 #include "skse/GameExtraData.h"
 
+#include "skse/Hooks_Handlers.h"
+
 #include "skse/NiNodes.h"
 #include "skse/NiTypes.h"
 #include "skse/NiExtraData.h"

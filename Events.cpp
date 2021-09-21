@@ -8,9 +8,12 @@
 
 namespace EventsDispatch {
 
+#define UNEQUIPITEM(actor, item, id) if (!UQ_Settings::UQSettings.CheckBlackListAmmo(id)) papyrusActor::UnequipItemEx(actor, item, 0, false); 
+#define EQUIPITEM(actor, item) papyrusActor::EquipItemEx(actor, item, 0, false, false)
+
 	LastAmmoEquipped lastAmmo;
 
-	template<typename Func>
+	template<typename Func = std::function<bool(InventoryEntryData *)>>
 	void VisitContainer(Actor *actor, Func func)
 	{
 		ExtraContainerChanges* containerChanges =
@@ -45,7 +48,7 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	TypeWeapon IsBow(TESForm *form)
+	inline TypeWeapon IsBow(TESForm *form)
 	{
 		TESObjectWEAP *weap = nullptr;
 
@@ -53,11 +56,11 @@ namespace EventsDispatch {
 			switch (weap->type()) {
 			case TESObjectWEAP::GameData::kType_Bow: 
 			case TESObjectWEAP::GameData::kType_Bow2:		
-				return TypeWeapon::Bow;					
+				return TypeWeapon::Bow;				
 
 			case TESObjectWEAP::GameData::kType_CBow: 
 			case TESObjectWEAP::GameData::kType_CrossBow:	
-				return TypeWeapon::CBow;				
+				return TypeWeapon::CBow;			
 
 			default:										
 				return TypeWeapon::AnotherWeapon;		
@@ -100,7 +103,7 @@ namespace EventsDispatch {
 
 				BGSKeyword *keyword = weap->keyword.keywords[i];
 
-				if (keyword && std::binary_search(UQSettings.begin(), UQSettings.end(), keyword->keyword.Get()))
+				if (keyword && binary_search(UQSettings, keyword->keyword.Get()))
 					return true;
 			}
 
@@ -138,10 +141,9 @@ namespace EventsDispatch {
 
 				VisitContainer(actor, [&](InventoryEntryData *entry) {
 
-					papyrusActor::UnequipItemEx(actor, entry->type, 0, false);
+					UNEQUIPITEM(actor, entry->type, entry->type->formID);
 
 					return false;
-
 				});
 			}
 			else {
@@ -159,7 +161,7 @@ namespace EventsDispatch {
 							// fix NPCs
 							if (refID != PlayerID) {
 
-								papyrusActor::EquipItemEx(actor, entry->type, 0, false, false);
+								EQUIPITEM(actor, entry->type);
 
 								return true;
 							}
@@ -170,7 +172,7 @@ namespace EventsDispatch {
 
 							if (lastAmmo[refID].GetLast(isBolt, weap_id) == entry->type->formID) {
 
-								papyrusActor::EquipItemEx(actor, entry->type, 0, false, false);
+								EQUIPITEM(actor, entry->type);
 
 								return true;
 							}
@@ -193,7 +195,7 @@ namespace EventsDispatch {
 				});
 
 				if (damage > 0 && frm_damage)
-					papyrusActor::EquipItemEx(actor, frm_damage, 0, false, false);
+					EQUIPITEM(actor, frm_damage);
 			}
 		}
 		else {
@@ -221,7 +223,7 @@ namespace EventsDispatch {
 					});
 
 					if (damage > 0 && frm_damage)
-						papyrusActor::EquipItemEx(actor, frm_damage, 0, false, false);
+						EQUIPITEM(actor, frm_damage);
 				}
 
 				return;
@@ -269,7 +271,7 @@ namespace EventsDispatch {
 
 				VisitContainer(actor, [&](InventoryEntryData *entry) {
 
-					papyrusActor::UnequipItemEx(actor, entry->type, 0, false);
+					UNEQUIPITEM(actor, entry->type, entry->type->formID);
 
 					return false;
 				});
@@ -312,13 +314,14 @@ namespace EventsDispatch {
 		}
 	}
 
-	EventResult TES_EquipEvent::ReceiveEvent(TESEquipEvent * evn, EventDispatcher<TESEquipEvent> * dispatcher)
+	template<typename T, typename Func = std::function<void(Actor *)>>
+	inline auto ActorEvent(T refr, Func func)
 	{
 		using namespace UQ_Settings;
 
 		Actor * act = nullptr;
 
-		if (evn && evn->reference && (act = DYNAMIC_CAST(evn->reference, TESObjectREFR, Actor))) {
+		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor))) {
 
 			if (act->IsDead(1))
 				return kEvent_Continue;
@@ -329,44 +332,51 @@ namespace EventsDispatch {
 			if (act->formID != PlayerID && !UQSettings.IsEnabledNPC())
 				return kEvent_Continue;
 
-			TESForm *form = LookupFormByID(evn->unk0);
-			
-			if (form && form->Has3D())
-				if (evn->unk2 & 0x10000)
-					OnEquip(act, form);
-				else
-					OnUnEquip(act, form);
+			func(act);
 		}
 
 		return kEvent_Continue;
 	}
 
-	EventResult TES_ObjectLoadedEvent::ReceiveEvent(TESObjectLoadedEvent * evn, EventDispatcher<TESObjectLoadedEvent> * dispatcher)
-	{	
-		//TESForm *form = LookupFormByID(evn->formId);
-		//Actor *actor = nullptr;
+	EventResult TES_EquipEvent::ReceiveEvent(TESEquipEvent * evn, EventDispatcher<TESEquipEvent> * dispatcher)
+	{
+		if (!evn) return kEvent_Continue;
 
-		//if (form && (actor = DYNAMIC_CAST(form, TESForm, Actor))) {
-		//	
-		//	TESForm *weap = actor->GetEquippedObject(true);
-		//	TypeWeapon isBow{ TypeWeapon::Nothing };
+		return ActorEvent(evn->reference, [&](Actor * act) {
 
-		//	if (weap && (isBow = IsBow(weap)) == TypeWeapon::AnotherWeapon || isBow == TypeWeapon::Nothing) {
+			TESForm *form = LookupFormByID(evn->object);
 
-		//		VisitContainer(actor, [&](InventoryEntryData *entry) {
+			if (form && form->Has3D())
+				evn->equipped ? OnEquip(act, form) : OnUnEquip(act, form);
+		});
+	}
 
-		//			papyrusActor::UnequipItemEx(actor, entry->type, 0, false);
+	EventResult TES_LoadGameEvent::ReceiveEvent(TESLoadGameEvent * evn, EventDispatcher<TESLoadGameEvent> * dispatcher)
+	{
+		if (!evn) return kEvent_Continue;
 
-		//			return false;
-		//		});
-		//	}
-		//}
+		TESForm *form = LookupFormByID(PlayerID);
+		TESObjectREFR * refr = nullptr;
+
+		if (form && (refr = DYNAMIC_CAST(form, TESForm, TESObjectREFR))) 
+			return ActorEvent(refr, [&](Actor * act) {
+
+				TESForm *weap = act->GetEquippedObject(true);
+				TypeWeapon isBow{ TypeWeapon::Nothing };
+
+				if (weap && (isBow = IsBow(weap)) == TypeWeapon::AnotherWeapon || isBow == TypeWeapon::Nothing) {
+
+					VisitContainer(act, [&](InventoryEntryData *entry) {
+
+						UNEQUIPITEM(act, entry->type, entry->type->formID);
+
+						return false;
+					});
+				}
+			});
 
 		return kEvent_Continue;
 	}
-
-	TES_EquipEvent EquipEvent;
-	//TES_ObjectLoadedEvent ObjectLoadedEvent;
 
 	void RegisterEventDispatch()
 	{
@@ -376,9 +386,10 @@ namespace EventsDispatch {
 
 #if UNEQUIPQUIVER_EXPORTS
 		g_EquipEventDispatcher->AddEventSink(&EquipEvent);
-		//g_objectLoadedEventDispatcher->AddEventSink(&ObjectLoadedEvent);
+		g_LoadGameEventDispatcher->AddEventSink(&LoadGameEvent);
 #elif UNEQUIPQUIVERSE_EXPORTS
 		GetEventDispatcherList()->equipDispatcher.AddEventSinkAddr(&EquipEvent);
+		GetEventDispatcherList()->loadGameEventDispatcher.AddEventSinkAddr(&LoadGameEvent);
 #endif
 
 		InitDispatcher = true;

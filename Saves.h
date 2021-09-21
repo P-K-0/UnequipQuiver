@@ -31,15 +31,18 @@ namespace UQ_Saves {
 	};
 
 	inline int UQFlagsToInt(const UQFlags& f) { return static_cast<int>(f); }
-	
+
 	static const std::vector<std::string> str_flag = { "", "loaded", "saved", "deleted" };
 
 	class UQSaves {
 
 	public:
 
+		UQSaves() = delete;
+
 		UQSaves(const UQSaves&) = delete;
 		UQSaves(const UQSaves&&) = delete;
+
 		UQSaves operator=(const UQSaves&) = delete;
 		UQSaves operator=(const UQSaves&&) = delete;
 
@@ -48,15 +51,15 @@ namespace UQ_Saves {
 
 	private:
 
-		bool Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);		
-		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);	
-		bool Delete(const std::string& filename);										
+		bool Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);
+		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);
+		bool Delete(const std::string& filename);
 
 		std::string EraseSuffix(const std::string& filename, const std::string& suffix = SuffixEss);
 		std::string GetSavePath();
 
-		std::string file_path; 
+		std::string file_path;
 	};
 
-	extern void LoadSaves(const void * const filename, UQFlags flags); 
+	extern void LoadSaves(const void * const filename, UQFlags flags);
 };

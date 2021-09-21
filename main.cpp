@@ -17,6 +17,11 @@ void MsgCallback(SKSEMessagingInterface::Message* msg)
 	using namespace UQ_Saves;
 
 	switch (msg->type) {
+	case SKSEMessagingInterface::kMessage_DataLoaded:
+
+		UQ_Settings::UQSettings.ReadSettings();
+		break;
+
 	case SKSEMessagingInterface::kMessage_PostLoad:
 
 		EventsDispatch::RegisterEventDispatch();
