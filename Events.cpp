@@ -47,7 +47,7 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	inline TypeWeapon IsBow(TESForm *form)
+	TypeWeapon IsBow(TESForm *form)
 	{
 		TESObjectWEAP *weap = nullptr;
 
