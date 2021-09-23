@@ -16,8 +16,7 @@ namespace EventsDispatch {
 	template<typename Func = std::function<bool(InventoryEntryData *)>>
 	void VisitContainer(Actor *actor, Func func)
 	{
-		ExtraContainerChanges* containerChanges =
-			static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
+		ExtraContainerChanges* containerChanges = static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
 
 		ExtraContainerChanges::Data* containerData = containerChanges ? containerChanges->data : NULL;
 
