@@ -63,7 +63,7 @@ namespace UQ_Saves {
 #define SETVALUE_MOD(tid, id) \
 					UInt32 tid { id }; \
 					bool is_light_ ## id = (tid & 0xff000000) == LIGHT_MOD; \
-					mod = is_light_ ## id ? datahandler->modList.loadedMods[tid >> 12] : datahandler->modList.loadedMods[tid >> 24]; \
+					mod = is_light_ ## id ? datahandler->modList.loadedCCMods[(tid >> 12) & 0xfff] : datahandler->modList.loadedMods[tid >> 24]; \
 					if (mod) { \
 						tid &= is_light_ ## id ? 0xfff : 0xffffff; \
 						ofs << mod->name << tid; \
@@ -86,7 +86,7 @@ namespace UQ_Saves {
 					}
 #endif	
 
-	UQSaves::UQSaves(const char * filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last)
+	UQSaves::UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last)
 	{
 		using namespace UQ_Settings;
 
@@ -111,6 +111,7 @@ namespace UQ_Saves {
 			ret = Delete(file_bin);
 			break;
 		case UQFlags::uqNothing:
+			return;
 		default:
 			return;
 		}
@@ -193,7 +194,7 @@ namespace UQ_Saves {
 				return filename.substr(0, npos);
 		}
 
-		return filename;
+		return filename; 
 	}
 
 	std::string UQSaves::GetSavePath()
@@ -224,7 +225,7 @@ namespace UQ_Saves {
 	{
 		using namespace UQ_Settings;
 
-		if (UQSettings.IsEnabledSavefile() && UQSettings.GetQuiverReEquipType() == QuiverReEquipType::QRE_LAST)
+		if (UQSettings.IsEnabledSavefile() && UQSettings.GetQuiverReEquipType() == QuiverReEquipType::QRE_LAST) 
 			UQSaves save{ static_cast<const char *>(filename), flags, EventsDispatch::lastAmmo };
 	}
 };

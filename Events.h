@@ -24,8 +24,8 @@ namespace EventsDispatch {
 
 		LastAmmoPair(const LastAmmoPair&) = delete;
 		LastAmmoPair(const LastAmmoPair&&) = delete;
-		LastAmmoPair operator=(const LastAmmoPair&) = delete;
-		LastAmmoPair operator=(const LastAmmoPair&&) = delete;
+		LastAmmoPair& operator=(const LastAmmoPair&) = delete;
+		LastAmmoPair& operator=(const LastAmmoPair&&) = delete;
 
 		explicit LastAmmoPair() { 
 			ammo.assign(N, std::pair<T, T>()); 
@@ -75,14 +75,14 @@ namespace EventsDispatch {
 	extern LastAmmoEquipped lastAmmo;
 
 #define DECL_CLASS_EVENT(ev) \
-	class TES_ ## ev : public BSTEventSink<TES ## ev> { \
+	class CLS_ ## ev : public BSTEventSink<ev> { \
 	public: \
-		virtual EventResult ReceiveEvent(TES ## ev * evn, EventDispatcher<TES ## ev> * dispacther); \
+		virtual EventResult ReceiveEvent(ev * evn, EventDispatcher<ev> * dispacther); \
 	}; \
-	static TES_ ## ev ev;
+	static CLS_ ## ev g_ ## ev;
 
-	DECL_CLASS_EVENT(EquipEvent);
-	DECL_CLASS_EVENT(LoadGameEvent);
+	DECL_CLASS_EVENT(TESEquipEvent);
+	DECL_CLASS_EVENT(TESLoadGameEvent);
 
 	enum class TypeWeapon {
 		Nothing,

@@ -8,9 +8,9 @@
 
 IDebugLog gLog;
 
-SKSEMessagingInterface *skse_msg_interface = nullptr;
-
 PluginHandle Plug_Handle;
+
+SKSEMessagingInterface* skse_msg_interface = nullptr;
 
 void MsgCallback(SKSEMessagingInterface::Message* msg)
 {
@@ -46,6 +46,7 @@ void MsgCallback(SKSEMessagingInterface::Message* msg)
 
 extern "C" {
 
+#if !UNEQUIPQUIVERAE_EXPORTS
 	bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
 	{
 		info->infoVersion = PluginInfo::kInfoVersion;
@@ -95,5 +96,41 @@ extern "C" {
 	{
 		return skse_msg_interface ? skse_msg_interface->RegisterListener(Plug_Handle, "SKSE", MsgCallback) : false;
 	}
+#else
+	bool SKSEPlugin_Load(const SKSEInterface* skse)
+	{
+		gLog.OpenRelative(CSIDL_MYDOCUMENTS, "\\My Games\\Skyrim Special Edition\\SKSE\\UnequipQuiverSE.log");
+
+		Plug_Handle = skse->GetPluginHandle();
+
+		if (skse->isEditor) {
+
+			_MESSAGE("loaded in editor, marking as incompatible");
+
+			return false;
+		}
+
+		if (!(skse_msg_interface = (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging))) {
+
+			_MESSAGE("Error Query Messaging Interface!");
+
+			return false;
+		}
+
+		return skse_msg_interface ? skse_msg_interface->RegisterListener(Plug_Handle, "SKSE", MsgCallback) : false;
+	}
+
+	__declspec(dllexport) SKSEPluginVersionData SKSEPlugin_Version =
+	{
+		SKSEPluginVersionData::kVersion,
+		1,
+		"UnequipQuiverSE",
+		"PK0",
+		"",
+		0,
+		{ RUNTIME_VERSION_1_6_318, 0 },
+		0,
+	};
+#endif
 }
 

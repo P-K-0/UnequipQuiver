@@ -21,8 +21,8 @@ namespace UQ_Settings {
 	float ReadSetting(const std::string& key, float def) { return std::stof(ReadSettingT(key, def)); }
 	QuiverReEquipType ReadSetting(const std::string& key, QuiverReEquipType def) { return static_cast<QuiverReEquipType>(ReadSetting(key, static_cast<int>(def))); }
 
-#define READSETTINGT(key) (key) = ReadSetting(# key, Default_ ## key)
-							//_DMESSAGE(# key " = %i", key)
+#define READSETTINGT(key) (key) = ReadSetting(# key, Default_ ## key); \
+						  _DMESSAGE(# key " = %i", key);
 #define READSETTINGS(key, v) (key) = ReadSettingIni(# key, v)
 
 	void UnequipQuiver_Settings::ReadSettings()
@@ -58,8 +58,9 @@ namespace UQ_Settings {
 		ParseKeywords(ReadSettingIni("sKeywords", Default_sKeywords));
 	
 		READSETTINGT(bBlackListAmmo);
-	
-		ParseBlackList(ReadSettingIni("sBlackListAmmo", Default_sBlackListAmmo));
+			ParseBlackList(ReadSettingIni("sBlackListAmmo", Default_sBlackListAmmo));
+
+		READSETTINGT(bExtraData);
 	}
 
 	template<typename Func = std::function<void(const std::string&)>>
@@ -118,7 +119,7 @@ namespace UQ_Settings {
 
 						UInt32 id{ 0 };
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 						if (mod->IsLight()) {
 							id = 0xfe000000 | (static_cast<UInt32>(mod->lightIndex) << 12);
 							id |= std::strtol(matches[2].str().c_str(), &end, 16) & 0xfff;

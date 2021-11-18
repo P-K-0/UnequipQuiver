@@ -9,7 +9,7 @@ namespace UQ_Saves {
 
 #if UNEQUIPQUIVER_EXPORTS
 	constexpr char *MyGamesSkyrim = "\\My Games\\Skyrim\\";
-#elif UNEQUIPQUIVERSE_EXPORTS
+#elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 	constexpr char *MyGamesSkyrim = "\\My Games\\Skyrim Special Edition\\";
 #endif
 
@@ -46,14 +46,14 @@ namespace UQ_Saves {
 		UQSaves operator=(const UQSaves&) = delete;
 		UQSaves operator=(const UQSaves&&) = delete;
 
-		explicit UQSaves(const char * filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last);
+		explicit UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last);
 		~UQSaves() {}
 
 	private:
 
-		bool Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);
-		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);
-		bool Delete(const std::string& filename);
+		bool Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);	
+		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);	
+		bool Delete(const std::string& filename);										
 
 		std::string EraseSuffix(const std::string& filename, const std::string& suffix = SuffixEss);
 		std::string GetSavePath();

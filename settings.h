@@ -2,12 +2,13 @@
 
 #include "std_library_facilities.h"
 #include "skse_libray_facilities.h"
+#include "Skeleton.h"
 
 namespace UQ_Settings {
 	
 #if UNEQUIPQUIVER_EXPORTS
 	constexpr char *UnequipQuiverIni = "Data\\skse\\plugins\\UnequipQuiver.ini";
-#elif UNEQUIPQUIVERSE_EXPORTS
+#elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 	constexpr char *UnequipQuiverIni = "Data\\skse\\plugins\\UnequipQuiverSE.ini";
 #endif
 
@@ -29,11 +30,14 @@ namespace UQ_Settings {
 	constexpr bool Default_bMultiBow = false;
 	constexpr bool Default_bEquipStronger = false;
 	constexpr bool Default_bBlackListAmmo = true;
+	constexpr bool Default_bExtraData = true;
 	constexpr QuiverReEquipType Default_iReEquipType = QuiverReEquipType::QRE_LAST;
 
-	constexpr char *Default_sKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
+	constexpr char* Default_sKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
 
-	constexpr char *Default_sBlackListAmmo = "Dawnguard.esm:1A958";
+	constexpr char* Default_sBlackListAmmo = "Dawnguard.esm:1A958";
+
+	constexpr char* NodeUQ = "NoUnequipAmmo";
 
 	template<class C, typename T>
 	inline bool binary_search(C& c, const T& val) { return std::binary_search(c.begin(), c.end(), val); }
@@ -71,6 +75,7 @@ namespace UQ_Settings {
 		const bool IsEnabledMultiBow() const { return bMultiBow; }
 		const bool IsEnabledEquipStronger() const { return bEquipStronger; }
 		const bool IsEnabledBlackList() const { return bBlackListAmmo; }
+		const bool IsEnabledExtraData() const {	return bExtraData; }
 
 		const std::string& GetSavePath() const { return sSavePath; }
 
@@ -88,6 +93,18 @@ namespace UQ_Settings {
 
 		const bool CheckBlackListAmmo(const UInt32 id) const { return (!BlackListAmmo.empty() && bBlackListAmmo ? binary_search(BlackListAmmo, id) : false); }
 
+		const bool CheckExtraDataAmmo(const UInt32 id) const
+		{
+			if (bExtraData) {
+
+				Skeleton::Skeleton skeleton;
+
+				return skeleton.HasExtraData(id, NodeUQ);
+			}
+
+			return false;
+		}
+
 	private:
 
 		bool bEnablePC{ Default_bEnablePC };
@@ -102,6 +119,7 @@ namespace UQ_Settings {
 		bool bMultiBow{ Default_bMultiBow };
 		bool bEquipStronger{ Default_bEquipStronger };
 		bool bBlackListAmmo{ Default_bBlackListAmmo };
+		bool bExtraData{ Default_bExtraData };
 
 		std::string sSavePath;
 
@@ -118,4 +136,3 @@ namespace UQ_Settings {
 
 	extern UnequipQuiver_Settings UQSettings;
 };
-
