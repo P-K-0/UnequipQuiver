@@ -1,5 +1,5 @@
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 #include "Addresses.h"
 #endif
 
@@ -127,7 +127,7 @@ extern "C" {
 		"UnequipQuiverSE",
 		"PK0",
 		"",
-		0,
+		SKSEPluginVersionData::kVersionIndependent_Signatures,
 		{ RUNTIME_VERSION_1_6_318, 0 },
 		0,
 	};
