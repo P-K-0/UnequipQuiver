@@ -3,7 +3,7 @@
 #include "skse_libray_facilities.h"
 #include "std_library_facilities.h"
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 #include "Addresses.h"
 #endif
 
