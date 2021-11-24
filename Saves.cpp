@@ -39,7 +39,7 @@ namespace UQ_Saves {
 		return ifs;
 	}
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 #define LIGHT_MOD 0xfe000000
 
 #define GETVALUE_MOD(p, name, id) \
@@ -59,7 +59,7 @@ namespace UQ_Saves {
 				id |= (static_cast<UInt32>(p->modIndex) << 24);  
 #endif
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 #define SETVALUE_MOD(tid, id) \
 					UInt32 tid { id }; \
 					bool is_light_ ## id = (tid & 0xff000000) == LIGHT_MOD; \
