@@ -2,7 +2,7 @@
 #include "Events.h"
 #include "settings.h"
 
-#if UNEQUIPQUIVERSE_EXPORTS
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 #include "Addresses.h"
 #endif
 
@@ -35,12 +35,11 @@ namespace EventsDispatch {
 	SInt32 CountItems(Actor* actor, TESForm* item)
 	{
 		ExtraContainerChanges* containerChanges = static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
-		ExtraContainerChanges::Data* containerData = nullptr;
 
-		if (containerChanges && (containerData = containerChanges->data) && actor->baseForm) {
+		if (containerChanges && containerChanges->data && actor->baseForm) {
 
 			TESContainer* container = DYNAMIC_CAST(actor->baseForm, TESForm, TESContainer);
-			InventoryEntryData* entryData = containerData->FindItemEntry(item);
+			InventoryEntryData* entryData = containerChanges->data->FindItemEntry(item);
 
 			if (container && entryData) {
 
@@ -444,12 +443,9 @@ namespace EventsDispatch {
 #if UNEQUIPQUIVER_EXPORTS
 		g_EquipEventDispatcher->AddEventSink(&g_TESEquipEvent);
 		g_LoadGameEventDispatcher->AddEventSink(&g_TESLoadGameEvent);
-#elif UNEQUIPQUIVERSE_EXPORTS
+#elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 		GetEventDispatcherList()->equipDispatcher.AddEventSinkAddr(&g_TESEquipEvent, Addresses::AddEventSink_Internal_Addr);
 		GetEventDispatcherList()->loadGameEventDispatcher.AddEventSinkAddr(&g_TESLoadGameEvent, Addresses::AddEventSink_Internal_Addr);
-#elif UNEQUIPQUIVERAE_EXPORTS
-		GetEventDispatcherList()->equipDispatcher.AddEventSink(&g_TESEquipEvent);
-		GetEventDispatcherList()->loadGameEventDispatcher.AddEventSink(&g_TESLoadGameEvent);
 #endif
 
 		InitDispatcher = true;
