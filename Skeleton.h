@@ -14,10 +14,10 @@ namespace Skeleton {
 	public:
 
 		Skeleton(const Skeleton&) = delete;
-		Skeleton(const Skeleton&&) = delete;
+		Skeleton(Skeleton&&) = delete;
 
 		Skeleton& operator=(const Skeleton&) = delete;
-		Skeleton& operator=(const Skeleton&&) = delete;
+		Skeleton& operator=(Skeleton&&) = delete;
 
 		Skeleton() {}
 		~Skeleton() {}

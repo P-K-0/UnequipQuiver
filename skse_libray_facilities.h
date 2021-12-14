@@ -20,6 +20,8 @@
 #include "skse/GameStreams.h"
 #include "skse/GameHandlers.h"
 
+#include "skse/Hooks_Handlers.h"
+
 #include "skse/NiNodes.h"
 #include "skse/NiTypes.h"
 #include "skse/NiExtraData.h"
@@ -52,6 +54,8 @@
 #include "skse64/GameExtraData.h"
 #include "skse64/GameStreams.h"
 #include "skse64/GameHandlers.h"
+
+#include "skse64/Hooks_Handlers.h"
 
 #include "skse64/NiNodes.h"
 #include "skse64/NiTypes.h"

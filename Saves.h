@@ -41,19 +41,20 @@ namespace UQ_Saves {
 		UQSaves() = delete;
 
 		UQSaves(const UQSaves&) = delete;
-		UQSaves(const UQSaves&&) = delete;
+		UQSaves(UQSaves&&) = delete;
 
-		UQSaves operator=(const UQSaves&) = delete;
-		UQSaves operator=(const UQSaves&&) = delete;
+		UQSaves& operator=(const UQSaves&) = delete;
+		UQSaves& operator=(UQSaves&&) = delete;
 
 		explicit UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last);
+
 		~UQSaves() {}
 
 	private:
 
 		bool Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);	
-		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);	
-		bool Delete(const std::string& filename);										
+		bool Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last);
+		bool Delete(const std::string& filename);
 
 		std::string EraseSuffix(const std::string& filename, const std::string& suffix = SuffixEss);
 		std::string GetSavePath();

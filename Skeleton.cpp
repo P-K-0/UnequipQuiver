@@ -6,6 +6,8 @@ namespace Skeleton {
 	template<typename Func>
 	void Skeleton::Visit(const std::string& filename, Func func)
 	{
+		if (filename.empty()) return;
+
 		const size_t size_mem{ sizeof(NiStream) };
 		UInt8 memory[size_mem];
 

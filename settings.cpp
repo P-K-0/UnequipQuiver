@@ -58,9 +58,18 @@ namespace UQ_Settings {
 		ParseKeywords(ReadSettingIni("sKeywords", Default_sKeywords));
 	
 		READSETTINGT(bBlackListAmmo);
-			ParseBlackList(ReadSettingIni("sBlackListAmmo", Default_sBlackListAmmo));
+	
+		ParseBlackList(ReadSettingIni("sBlackListAmmo", Default_sBlackListAmmo));
 
 		READSETTINGT(bExtraData);
+
+		READSETTINGT(bHideQuiverOnSheathe);
+
+		READSETTINGT(bHideQuiverOnDraw);
+
+		READSETTINGT(bHideBoltOnSheathe);
+
+		READSETTINGT(bHideBoltOnDraw);
 	}
 
 	template<typename Func = std::function<void(const std::string&)>>

@@ -107,11 +107,10 @@ namespace UQ_Saves {
 		case UQFlags::uqSave:
 			ret = Write(file_bin, last);
 			break;
-		case UQFlags::uqDelete: 
+		case UQFlags::uqDelete:
 			ret = Delete(file_bin);
 			break;
 		case UQFlags::uqNothing:
-			return;
 		default:
 			return;
 		}
@@ -176,6 +175,8 @@ namespace UQ_Saves {
 				SETVALUE_MOD(aid, ammo_id);
 			});
 
+			ofs.flush();
+
 			return true;
 		}
 
@@ -194,7 +195,7 @@ namespace UQ_Saves {
 				return filename.substr(0, npos);
 		}
 
-		return filename; 
+		return filename;
 	}
 
 	std::string UQSaves::GetSavePath()

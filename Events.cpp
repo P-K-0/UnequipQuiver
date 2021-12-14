@@ -32,7 +32,7 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	SInt32 CountItems(Actor* actor, TESForm* item)
+	inline SInt32 CountItems(Actor* actor, TESForm* item)
 	{
 		ExtraContainerChanges* containerChanges = static_cast<ExtraContainerChanges*>(actor->extraData.GetByType(kExtraData_ContainerChanges));
 
@@ -87,7 +87,7 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	inline TypeWeapon IsBow(TESForm* form)
+	TypeWeapon IsBow(TESForm* form)
 	{
 		TESObjectWEAP* weap = nullptr;
 
@@ -95,17 +95,17 @@ namespace EventsDispatch {
 			switch (weap->type()) {
 			case TESObjectWEAP::GameData::kType_Bow:
 			case TESObjectWEAP::GameData::kType_Bow2:
-				return TypeWeapon::Bow;					
+				return TypeWeapon::Bow;
 
 			case TESObjectWEAP::GameData::kType_CBow:
 			case TESObjectWEAP::GameData::kType_CrossBow:
-				return TypeWeapon::CBow;				
+				return TypeWeapon::CBow;
 
 			default:
-				return TypeWeapon::AnotherWeapon;		
+				return TypeWeapon::AnotherWeapon;
 			}
 
-		return TypeWeapon::Nothing;						
+		return TypeWeapon::Nothing;
 	}
 
 	inline int IsBolt(TESForm* form)
@@ -113,7 +113,7 @@ namespace EventsDispatch {
 		TESAmmo* ammo = nullptr;
 
 		if (form && (ammo = DYNAMIC_CAST(form, TESForm, TESAmmo)))
-			return static_cast<int>(ammo->isBolt());
+			return static_cast<int>(ammo->isBolt()) & 1;
 
 		return 0;
 	}
@@ -149,7 +149,53 @@ namespace EventsDispatch {
 		return false;
 	}
 
+	inline bool IsActorEnabled(Actor* act)
+	{
+		using namespace UQ_Settings;
+
+		if (act->IsDead(1))
+			return false;
+
+		if (act->formID == PlayerID && !UQSettings.IsEnabledPC())
+			return false;
+
+		if (act->formID != PlayerID && !UQSettings.IsEnabledNPC())
+			return false;
+
+		return true;
+	}
+	void HideQuiver(Actor* act, bool sheathe = true)
+	{
+		if (!IsActorEnabled(act)) return;
+
+		if (TESForm* weap = act->GetEquippedObject(true))
+			switch (IsBow(weap)) {
+
+			case TypeWeapon::Bow:
+
+				hideNode.Hide(act, UQ_Settings::UQSettings.IsHideQuiverOnSheathe(sheathe));
+				break;
+
+			case TypeWeapon::CBow:
+
+				hideNode.Hide(act, UQ_Settings::UQSettings.IsHideBoltOnSheathe(sheathe));
+				break;
+
+			default:
+
+				VisitContainer(act, [&](InventoryEntryData* entry) {
+
+					UNEQUIPITEMEX(act, entry, false);
+
+					return false;
+				});
+
+				break;
+			}
+	}
+
 	static UInt32 last_ammo{ 0 };
+	static UInt32 last_weap{ 0 };
 
 	void OnEquip(Actor* actor, TESForm* form)
 	{
@@ -197,7 +243,7 @@ namespace EventsDispatch {
 						switch (UQSettings.GetQuiverReEquipType()) {
 						case QuiverReEquipType::QRE_DEFAULT:
 
-							// fix per gli NPCs
+							// fix NPCs
 							if (refID != PlayerID) {
 
 								EQUIPITEM(actor, entry->type);
@@ -223,7 +269,6 @@ namespace EventsDispatch {
 							if ((ammo = DYNAMIC_CAST(entry->type, TESForm, TESAmmo)) && damage < ammo->settings.damage) {
 
 								damage = ammo->settings.damage;
-
 								frm_damage = entry->type;
 							}
 
@@ -236,6 +281,8 @@ namespace EventsDispatch {
 				if (damage > 0 && frm_damage)
 					EQUIPITEM(actor, frm_damage);
 			}
+
+			HideQuiver(actor);
 		}
 		else {
 
@@ -312,6 +359,9 @@ namespace EventsDispatch {
 
 			if (isBow == TypeWeapon::Bow || isBow == TypeWeapon::CBow) {
 
+				if (refID = PlayerID && UQSettings.IsEnabledMultiBow())
+					last_weap = form->formID;
+
 				VisitContainer(actor, [&](InventoryEntryData* entry) {
 
 					UNEQUIPITEM(actor, entry);
@@ -332,14 +382,8 @@ namespace EventsDispatch {
 				auto& la = lastAmmo[refID];
 				UInt32 weap_id{ 0 };
 
-				if (refID == PlayerID && UQSettings.IsEnabledMultiBow()) {
-
-					TESForm* weap = actor->GetEquippedObject(true);
-					TypeWeapon isBow{ TypeWeapon::Nothing };
-
-					if (weap && (isBow = IsBow(weap)) == TypeWeapon::Bow || isBow == TypeWeapon::CBow)
-						weap_id = weap->formID;
-				}
+				if (refID == PlayerID && UQSettings.IsEnabledMultiBow()) 
+					weap_id = last_weap;
 
 				if (la.GetLatch(isBolt, weap_id) == 0)
 					la.SetLatch(isBolt, form->formID, weap_id);
@@ -354,19 +398,8 @@ namespace EventsDispatch {
 
 		Actor* act = nullptr;
 
-		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor))) {
-
-			if (act->IsDead(1))
-				return kEvent_Continue;
-
-			if (act->formID == PlayerID && !UQSettings.IsEnabledPC())
-				return kEvent_Continue;
-
-			if (act->formID != PlayerID && !UQSettings.IsEnabledNPC())
-				return kEvent_Continue;
-
+		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor)) && IsActorEnabled(act))
 			func(act);
-		}
 
 		return kEvent_Continue;
 	}
@@ -390,20 +423,10 @@ namespace EventsDispatch {
 					ActorEvent(cell->objectList[idx], [&](Actor* act) {
 #endif	
 
-						TESForm* weap = act->GetEquippedObject(true);
-						TypeWeapon isBow{ TypeWeapon::Nothing };
+						HideQuiver(act);
 
-						if (weap && (isBow = IsBow(weap)) == TypeWeapon::AnotherWeapon || isBow == TypeWeapon::Nothing) {
-
-							VisitContainer(act, [&](InventoryEntryData* entry) {
-
-								UNEQUIPITEMEX(act, entry, false);
-
-								return false;
-							});
-						}
 					});
-				}
+				}	
 			}
 		}
 	}
@@ -434,6 +457,48 @@ namespace EventsDispatch {
 		return kEvent_Continue;
 	}
 
+	EventResult CLS_TESObjectLoadedEvent::ReceiveEvent(TESObjectLoadedEvent* evn, EventDispatcher<TESObjectLoadedEvent>* dispatcher)
+	{
+		if (!evn || !evn->loaded) return kEvent_Continue;
+
+		TESForm* form = LookupFormByID(evn->formId);
+		TESObjectREFR* refr = nullptr;
+
+		if (form && (refr = DYNAMIC_CAST(form, TESForm, TESObjectREFR)))
+			ActorEvent(refr, [&](Actor* act) { HideQuiver(act); });
+
+		return kEvent_Continue;
+	}
+
+	EventResult CLS_TESInitScriptEvent::ReceiveEvent(TESInitScriptEvent* evn, EventDispatcher<TESInitScriptEvent>* dispatcher)
+	{
+		if (evn && evn->reference)
+			ActorEvent(evn->reference, [&](Actor* act) { HideQuiver(act); });
+
+		return kEvent_Continue;
+	}
+	
+	EventResult CLS_SKSEActionEvent::ReceiveEvent(SKSEActionEvent* evn, EventDispatcher<SKSEActionEvent>* dispatcher)
+	{
+		if (evn && evn->actor) 
+			switch (evn->type) {
+
+			case SKSEActionEvent::kType_BeginDraw:
+
+				HideQuiver(evn->actor, false);
+				break;
+
+			case SKSEActionEvent::kType_BeginSheathe:
+
+				HideQuiver(evn->actor);
+				break;
+			}
+
+		return kEvent_Continue;
+	}
+
+	SKSEMessagingInterface* skse_msg_interface = nullptr;
+
 	void RegisterEventDispatch()
 	{
 		static bool InitDispatcher{ false };
@@ -443,10 +508,30 @@ namespace EventsDispatch {
 #if UNEQUIPQUIVER_EXPORTS
 		g_EquipEventDispatcher->AddEventSink(&g_TESEquipEvent);
 		g_LoadGameEventDispatcher->AddEventSink(&g_TESLoadGameEvent);
+		g_initScriptEventDispatcher->AddEventSink(&g_TESInitScriptEvent);
+		g_objectLoadedEventDispatcher->AddEventSink(&g_TESObjectLoadedEvent);
+
 #elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
-		GetEventDispatcherList()->equipDispatcher.AddEventSinkAddr(&g_TESEquipEvent, Addresses::AddEventSink_Internal_Addr);
-		GetEventDispatcherList()->loadGameEventDispatcher.AddEventSinkAddr(&g_TESLoadGameEvent, Addresses::AddEventSink_Internal_Addr);
+
+#define ADD_EVENT(ev, member) GetEventDispatcherList()-> ## member ##.AddEventSinkAddr(&g_ ## ev, Addresses::AddEventSink_Internal_Addr); 
+
+		ADD_EVENT(TESEquipEvent, equipDispatcher);
+		ADD_EVENT(TESLoadGameEvent, loadGameEventDispatcher);
+		ADD_EVENT(TESInitScriptEvent, initScriptDispatcher);
+		ADD_EVENT(TESObjectLoadedEvent, objectLoadedDispatcher);
 #endif
+
+		if (skse_msg_interface) {
+
+			auto skse_action = static_cast<EventDispatcher<SKSEActionEvent>*>(skse_msg_interface->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent));
+			
+			if (skse_action) {
+
+				skse_action->AddEventSinkAddr(&g_SKSEActionEvent, Addresses::AddEventSink_Internal_Addr);
+
+				Hooks_Handlers_Commit();
+			}
+		}
 
 		InitDispatcher = true;
 

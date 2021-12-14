@@ -3,6 +3,7 @@
 #include "std_library_facilities.h"
 #include "skse_libray_facilities.h"
 #include "Skeleton.h"
+#include "Events.h"
 
 namespace UQ_Settings {
 	
@@ -31,6 +32,11 @@ namespace UQ_Settings {
 	constexpr bool Default_bEquipStronger = false;
 	constexpr bool Default_bBlackListAmmo = true;
 	constexpr bool Default_bExtraData = true;
+	constexpr bool Default_bHideQuiverOnSheathe = false;
+	constexpr bool Default_bHideQuiverOnDraw = false;
+	constexpr bool Default_bHideBoltOnSheathe = false;
+	constexpr bool Default_bHideBoltOnDraw = false;
+
 	constexpr QuiverReEquipType Default_iReEquipType = QuiverReEquipType::QRE_LAST;
 
 	constexpr char* Default_sKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
@@ -55,9 +61,9 @@ namespace UQ_Settings {
 	public:
 
 		UnequipQuiver_Settings(const UnequipQuiver_Settings&) = delete;
-		UnequipQuiver_Settings(const UnequipQuiver_Settings&&) = delete;
-		UnequipQuiver_Settings operator=(const UnequipQuiver_Settings&) = delete;
-		UnequipQuiver_Settings operator=(const UnequipQuiver_Settings&&) = delete;
+		UnequipQuiver_Settings(UnequipQuiver_Settings&&) = delete;
+		UnequipQuiver_Settings& operator=(const UnequipQuiver_Settings&) = delete;
+		UnequipQuiver_Settings& operator=(UnequipQuiver_Settings&&) = delete;
 
 		UnequipQuiver_Settings() {}
 		~UnequipQuiver_Settings() {}
@@ -76,6 +82,8 @@ namespace UQ_Settings {
 		const bool IsEnabledEquipStronger() const { return bEquipStronger; }
 		const bool IsEnabledBlackList() const { return bBlackListAmmo; }
 		const bool IsEnabledExtraData() const {	return bExtraData; }
+		const bool IsHideQuiverOnSheathe(bool sheathe) const { return sheathe ? bHideQuiverOnSheathe: bHideQuiverOnDraw; }
+		const bool IsHideBoltOnSheathe(bool sheathe) const { return sheathe ? bHideBoltOnSheathe : bHideBoltOnDraw; }
 
 		const std::string& GetSavePath() const { return sSavePath; }
 
@@ -120,6 +128,10 @@ namespace UQ_Settings {
 		bool bEquipStronger{ Default_bEquipStronger };
 		bool bBlackListAmmo{ Default_bBlackListAmmo };
 		bool bExtraData{ Default_bExtraData };
+		bool bHideQuiverOnSheathe{ Default_bHideQuiverOnSheathe };
+		bool bHideQuiverOnDraw{ Default_bHideQuiverOnDraw };
+		bool bHideBoltOnSheathe{ Default_bHideBoltOnSheathe };
+		bool bHideBoltOnDraw{ Default_bHideBoltOnDraw };
 
 		std::string sSavePath;
 
