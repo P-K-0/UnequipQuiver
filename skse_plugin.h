@@ -22,8 +22,11 @@ namespace skse_plugin {
 		SKSE_Plugin() noexcept { hasQuery = false; }
 		virtual ~SKSE_Plugin() noexcept {}
 
-		static _NODISCARD bool Query(const SKSEInterface* skse, PluginInfo* info) noexcept;
+		static _NODISCARD bool Query(const SKSEInterface* skse, PluginInfo* info = nullptr) noexcept;
 		static _NODISCARD bool Load(const SKSEInterface* skse) noexcept;
+
+		static SKSEMessagingInterface* skse_msg_interface;
+		static SKSETaskInterface* skse_task_interface;
 
 	private:
 
@@ -31,6 +34,8 @@ namespace skse_plugin {
 		static void InitInfo(PluginInfo* info) noexcept;
 		static _NODISCARD bool IsEditor(const SKSEInterface* skse) noexcept;
 		static _NODISCARD bool QueryMessaging(const SKSEInterface* skse) noexcept;
+		static _NODISCARD bool QueryTask(const SKSEInterface* skse) noexcept;
+		static void MsgCallback(SKSEMessagingInterface::Message* msg) noexcept;
 
 		static bool hasQuery;
 		static IDebugLog gLog;

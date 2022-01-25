@@ -3,10 +3,12 @@
 
 namespace skse_plugin {
 
-	bool SKSE_Plugin::hasQuery;
+	SKSEMessagingInterface* SKSE_Plugin::skse_msg_interface;
+	SKSETaskInterface* SKSE_Plugin::skse_task_interface;
 	PluginHandle SKSE_Plugin::plugHandle;
+	bool SKSE_Plugin::hasQuery;
 
-	void MsgCallback(SKSEMessagingInterface::Message* msg)
+	void SKSE_Plugin::MsgCallback(SKSEMessagingInterface::Message* msg) noexcept
 	{
 		using namespace UQ_Saves;
 
@@ -16,7 +18,7 @@ namespace skse_plugin {
 			UQ_Settings::UQSettings.ReadSettings();
 			break;
 
-		case SKSEMessagingInterface::kMessage_PostLoad:
+		case SKSEMessagingInterface::kMessage_PostPostLoad:
 
 			EventsDispatch::RegisterEventDispatch();
 			break;
@@ -58,6 +60,7 @@ namespace skse_plugin {
 
 		if (IsEditor(skse)) return false;
 		if (!QueryMessaging(skse)) return false;
+		if (!QueryTask(skse)) return false;
 
 		return true;
 	}
@@ -65,10 +68,10 @@ namespace skse_plugin {
 	_NODISCARD bool SKSE_Plugin::Load(const SKSEInterface* skse) noexcept
 	{
 		if (!hasQuery)
-			if (!Query(skse, nullptr))
+			if (!Query(skse))
 				return false;
 
-		return EventsDispatch::skse_msg_interface ? EventsDispatch::skse_msg_interface->RegisterListener(plugHandle, "SKSE", MsgCallback) : false;
+		return skse_msg_interface ? skse_msg_interface->RegisterListener(plugHandle, "SKSE", MsgCallback) : false;
 	}
 
 	void SKSE_Plugin::InitLog() noexcept
@@ -109,9 +112,21 @@ namespace skse_plugin {
 
 	_NODISCARD bool SKSE_Plugin::QueryMessaging(const SKSEInterface* skse) noexcept
 	{
-		if (!(EventsDispatch::skse_msg_interface = (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging))) {
+		if (!(skse_msg_interface = (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging))) {
 
 			_MESSAGE("Error Query Messaging Interface!");
+
+			return false;
+		}
+
+		return true;
+	}
+
+	_NODISCARD bool SKSE_Plugin::QueryTask(const SKSEInterface* skse) noexcept
+	{
+		if (!(skse_task_interface = (SKSETaskInterface*)skse->QueryInterface(kInterface_Task))) {
+
+			_MESSAGE("Error Query Task Interface!");
 
 			return false;
 		}

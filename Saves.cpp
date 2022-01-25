@@ -29,11 +29,12 @@ namespace UQ_Saves {
 		ifs >> l;
 
 		if (l > 0) {
-			char *str_temp = new char[l + 1];
-			ifs.read(&str_temp[0], l);
-			str_temp[l] = '\0';
-			v = str_temp;
-			delete[] str_temp;
+
+			char* strTemp = new char[l + 1];
+			ifs.read(&strTemp[0], l);
+			strTemp[l] = '\0';
+			v = strTemp;
+			delete[] strTemp;
 		}
 
 		return ifs;
@@ -86,7 +87,7 @@ namespace UQ_Saves {
 					}
 #endif	
 
-	UQSaves::UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::LastAmmoEquipped& last)
+	UQSaves::UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::Events::LastAmmoEquipped& last)
 	{
 		using namespace UQ_Settings;
 
@@ -118,7 +119,7 @@ namespace UQ_Saves {
 		_DMESSAGE("File : %s %s%s.", file_bin.c_str(), ret ? "" : "not ", str_flag[UQFlagsToInt(flag)].c_str());
 	}
 
-	bool UQSaves::Read(const std::string& filename, EventsDispatch::LastAmmoEquipped& last)
+	bool UQSaves::Read(const std::string& filename, EventsDispatch::Events::LastAmmoEquipped& last)
 	{
 		std::ifstream ifs{ filename, std::ios::binary };
 
@@ -144,7 +145,7 @@ namespace UQ_Saves {
 				GETVALUE_MOD(ammo_mod, ammo_name, ammo_id);
 
 				if (!weap_name.empty() && !ammo_name.empty())
-					l.SetLatch(index, ammo_id, weap_id);
+					l.SetLast(index, ammo_id, weap_id);
 			}
 
 			return true;
@@ -153,7 +154,7 @@ namespace UQ_Saves {
 		return false;
 	}
 
-	bool UQSaves::Write(const std::string& filename, EventsDispatch::LastAmmoEquipped& last)
+	bool UQSaves::Write(const std::string& filename, EventsDispatch::Events::LastAmmoEquipped& last)
 	{
 		std::ofstream ofs{ filename, std::ios::binary };
 
@@ -208,7 +209,6 @@ namespace UQ_Saves {
 
 		if (SUCCEEDED(err = SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS, NULL, SHGFP_TYPE_CURRENT, path)) && !(file_path = path).empty()) {
 
-			file_path = path;
 			file_path += MyGamesSkyrim;
 
 			std::string skyrim_ini{ file_path };
@@ -227,6 +227,6 @@ namespace UQ_Saves {
 		using namespace UQ_Settings;
 
 		if (UQSettings.IsEnabledSavefile() && UQSettings.GetQuiverReEquipType() == QuiverReEquipType::QRE_LAST) 
-			UQSaves save{ static_cast<const char *>(filename), flags, EventsDispatch::lastAmmo };
+			UQSaves save{ static_cast<const char *>(filename), flags, EventsDispatch::gEvents.GetLastAmmoEquipped() };
 	}
 };

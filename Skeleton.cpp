@@ -48,10 +48,14 @@ namespace Skeleton {
 	bool Skeleton::HasExtraData(NiAVObject* obj, const std::string& name)
 	{
 		BSFixedString str = name.c_str();
-		NiBooleanExtraData* extraData = ni_cast(obj->GetExtraData(str), NiBooleanExtraData);
 
-		if (extraData) 
-			return extraData->m_data;
+		if (NiExtraData* extraData = obj->GetExtraData(str)) {
+
+			NiBooleanExtraData* boolExtraData = ni_cast(extraData, NiBooleanExtraData);
+
+			if (boolExtraData)
+				return boolExtraData->m_data;
+		}
 
 		return false;
 	}
