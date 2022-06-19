@@ -25,6 +25,7 @@ namespace skse_plugin {
 		static _NODISCARD bool Query(const SKSEInterface* skse, PluginInfo* info = nullptr) noexcept;
 		static _NODISCARD bool Load(const SKSEInterface* skse) noexcept;
 
+		static SKSEPapyrusInterface* skse_papyrus_interface;
 		static SKSEMessagingInterface* skse_msg_interface;
 		static SKSETaskInterface* skse_task_interface;
 
@@ -35,6 +36,8 @@ namespace skse_plugin {
 		static _NODISCARD bool IsEditor(const SKSEInterface* skse) noexcept;
 		static _NODISCARD bool QueryMessaging(const SKSEInterface* skse) noexcept;
 		static _NODISCARD bool QueryTask(const SKSEInterface* skse) noexcept;
+		static _NODISCARD bool QueryPapyrus(const SKSEInterface* skse) noexcept;
+
 		static void MsgCallback(SKSEMessagingInterface::Message* msg) noexcept;
 
 		static bool hasQuery;

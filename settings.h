@@ -5,12 +5,16 @@
 #include "Skeleton.h"
 #include "Events.h"
 
+#include "SimpleIni.h"
+
 namespace UQ_Settings {
 	
 #if UNEQUIPQUIVER_EXPORTS
 	constexpr char *UnequipQuiverIni = "Data\\skse\\plugins\\UnequipQuiver.ini";
 #elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 	constexpr char *UnequipQuiverIni = "Data\\skse\\plugins\\UnequipQuiverSE.ini";
+	constexpr char* UnequipQuiverIniMCM = "Data\\MCM\\Config\\UnequipQuiverSE\\settings.ini";
+	constexpr char* UnequipQuiverIniSettings = "Data\\MCM\\Settings\\UnequipQuiverSE.ini";
 #endif
 
 	enum class QuiverReEquipType {
@@ -31,17 +35,19 @@ namespace UQ_Settings {
 	constexpr bool Default_bMultiBow = false;
 	constexpr bool Default_bEquipStronger = false;
 	constexpr bool Default_bBlackListAmmo = true;
+	constexpr bool Default_bBlackListRace = false;
+	constexpr bool Default_bBlackListCharacter = false;
 	constexpr bool Default_bExtraData = true;
 	constexpr bool Default_bHideQuiverOnSheathe = false;
 	constexpr bool Default_bHideQuiverOnDraw = false;
 	constexpr bool Default_bHideBoltOnSheathe = false;
 	constexpr bool Default_bHideBoltOnDraw = false;
-
 	constexpr QuiverReEquipType Default_iReEquipType = QuiverReEquipType::QRE_LAST;
-
 	constexpr char* Default_sKeywords = "WeapTypeStaff,WeapTypeDagger,WeapTypeSword,WeapTypeWarhammer,WeapTypeBattleaxe,WeapTypeWarAxe,WeapTypeGreatsword,WeapTypeMace";
-
 	constexpr char* Default_sBlackListAmmo = "Dawnguard.esm:1A958";
+	constexpr char* Default_sBlackListRace = "";
+	constexpr char* Default_sBlackListCharacter = "";
+	constexpr char* Default_sSavePath = "";
 
 	constexpr char* NodeUQ = "NoUnequipAmmo";
 
@@ -50,6 +56,135 @@ namespace UQ_Settings {
 
 	template<class C>
 	inline void sort(C& c) { std::sort(c.begin(), c.end()); }
+
+	template<typename CIn, typename  COut>
+	inline void lower(const CIn& in, COut& out) { std::transform(in.begin(), in.end(), out.begin(), std::tolower); }
+
+	class IniSettings {
+
+	public:
+
+		IniSettings() = delete;
+		IniSettings(const IniSettings&) = delete;
+		IniSettings(IniSettings&&) = delete;
+		IniSettings& operator=(const IniSettings&) = delete;
+		IniSettings& operator=(IniSettings&&) = delete;
+
+		IniSettings(const std::string& Filename)
+		{
+			ini.SetUnicode();
+			lastErr = ini.LoadFile(Filename.c_str());
+		}
+
+		~IniSettings() {}
+
+		template<typename T>
+		T ReadAs(const std::string& key, const std::string& app, T def = T()) { return ReadSetting(key, app, def); }
+
+		operator bool() { return lastErr == 0; }
+
+	private:
+
+		std::string ReadSettingIni(const std::string& key, const std::string& app, const std::string def);
+
+		int ReadSetting(const std::string& key, const std::string& app, int def) { return std::stoi(ReadSettingIni(key, app, std::to_string(def))); }
+		bool ReadSetting(const std::string& key, const std::string& app, bool def) { return std::stoi(ReadSettingIni(key, app, std::to_string(def))); }
+		float ReadSetting(const std::string& key, const std::string& app, float def) { return std::stof(ReadSettingIni(key, app, std::to_string(def))); }
+		QuiverReEquipType ReadSetting(const std::string& key, const std::string app, QuiverReEquipType def)
+			{ return static_cast<QuiverReEquipType>(ReadSetting(key, app, static_cast<int>(def))); }
+		std::string ReadSetting(const std::string& key, const std::string& app, const std::string def) { return ReadSettingIni(key, app, def); }
+
+		CSimpleIni ini;
+		SI_Error lastErr{};
+	};
+
+	enum class SettingsIndex : std::uint32_t {
+
+		EnablePC,
+		EnableNPC,
+
+		Spell,
+		Weapon,
+		Shield,
+		Bow,
+		Crossbow,
+		CheckWeaponByKeywords,
+		ReEquipType,
+		EquipStronger,
+		Savefile,
+		MultiBow,
+
+		BlackListAmmo,
+		BlackListRace,
+		BlackListCharacter,
+
+		ExtraData,
+
+		HideQuiverOnSheathe,
+		HideQuiverOnDraw,
+		HideBoltOnSheathe,
+		HideBoltOnDraw,
+
+		HideQuiverOnSheatheNPC,
+		HideQuiverOnDrawNPC,
+		HideBoltOnSheatheNPC,
+		HideBoltOnDrawNPC
+	};
+
+	using PairSetting = std::pair<std::string, SettingsIndex>;
+
+#define PAIRSETTING(a) PairSetting("b" # a, SettingsIndex:: ## a)
+
+	static std::vector<PairSetting> vSettings {
+		PAIRSETTING(EnablePC),
+		PAIRSETTING(EnableNPC),
+		PAIRSETTING(Spell),
+		PAIRSETTING(Weapon),
+		PAIRSETTING(Shield),
+		PAIRSETTING(Bow),
+		PAIRSETTING(Crossbow),
+		PAIRSETTING(CheckWeaponByKeywords),
+		PAIRSETTING(ReEquipType),
+		PAIRSETTING(EquipStronger),
+		PAIRSETTING(Savefile),
+		PAIRSETTING(MultiBow),
+		PAIRSETTING(BlackListAmmo),
+		PAIRSETTING(BlackListRace),
+		PAIRSETTING(BlackListCharacter),
+		PAIRSETTING(ExtraData),
+		PAIRSETTING(HideQuiverOnSheathe),
+		PAIRSETTING(HideQuiverOnDraw),
+		PAIRSETTING(HideBoltOnSheathe),
+		PAIRSETTING(HideBoltOnDraw),
+		PAIRSETTING(HideQuiverOnSheatheNPC),
+		PAIRSETTING(HideQuiverOnDrawNPC),
+		PAIRSETTING(HideBoltOnSheatheNPC),
+		PAIRSETTING(HideBoltOnDrawNPC)
+	};
+
+	enum class CharacterType : std::uint32_t {
+
+		PC,
+		NPC,
+		Max
+	};
+
+	template<class Tval>
+	class CharacterSelected {
+
+	public:
+
+		CharacterSelected() { for (auto& e : enum_) e = Tval(); }
+		CharacterSelected(const bool initValue) { for (auto& e : enum_) e = initValue; }
+		virtual ~CharacterSelected() {}
+
+		Tval& operator[](CharacterType index) { return enum_[static_cast<size_t>(index)]; }
+		const Tval& operator[](CharacterType index) const { return enum_[static_cast<size_t>(index)]; }
+
+	private:
+
+		Tval enum_[static_cast<size_t>(CharacterType::Max)];
+	};
 
 	class UnequipQuiver_Settings {
 
@@ -68,7 +203,8 @@ namespace UQ_Settings {
 		UnequipQuiver_Settings() {}
 		~UnequipQuiver_Settings() {}
 
-		void ReadSettings();
+		void ReadSettings(const std::string& Filename, bool readDefault = true);
+		void ReadAllSettings();
 
 		const bool IsEnabledPC() const { return bEnablePC; }
 		const bool IsEnabledNPC() const { return bEnableNPC; }
@@ -80,10 +216,12 @@ namespace UQ_Settings {
 		const bool IsEnabledSavefile() const { return bSavefile; }
 		const bool IsEnabledMultiBow() const { return bMultiBow; }
 		const bool IsEnabledEquipStronger() const { return bEquipStronger; }
-		const bool IsEnabledBlackList() const { return bBlackListAmmo; }
+		const bool IsEnabledBlackListAmmo() const { return bBlackListAmmo; }
+		const bool IsEnabledBlackListRace() const { return bBlackListRace; }
+		const bool IsEnabledBlackListCharacter() const { return bBlackListCharacter; }
 		const bool IsEnabledExtraData() const {	return bExtraData; }
-		const bool IsHideQuiverOnSheathe(bool sheathe) const { return sheathe ? bHideQuiverOnSheathe: bHideQuiverOnDraw; }
-		const bool IsHideBoltOnSheathe(bool sheathe) const { return sheathe ? bHideBoltOnSheathe : bHideBoltOnDraw; }
+		const bool IsHideQuiverOnSheathe(bool sheathe, CharacterType type) const { return sheathe ? bHideQuiverOnSheathe[type] : bHideQuiverOnDraw[type]; }
+		const bool IsHideBoltOnSheathe(bool sheathe, CharacterType type) const { return sheathe ? bHideBoltOnSheathe[type] : bHideBoltOnDraw[type]; }
 
 		const std::string& GetSavePath() const { return sSavePath; }
 
@@ -100,18 +238,15 @@ namespace UQ_Settings {
 		const iterator end() { return KeysList.end(); }
 
 		const bool CheckBlackListAmmo(const UInt32 id) const { return (!BlackListAmmo.empty() && bBlackListAmmo ? binary_search(BlackListAmmo, id) : false); }
+		const bool CheckBlackListRace(const UInt32 id) const { return (!BlackListRace.empty() && bBlackListRace ? binary_search(BlackListRace, id) : false); }
+		const bool CheckBlackListCharacter(const UInt32 id) const { return (!BlackListCharacter.empty() && bBlackListCharacter ? binary_search(BlackListCharacter, id) : false); }
 
-		const bool CheckExtraDataAmmo(const UInt32 id) const
-		{
-			if (bExtraData) {
+		const bool CheckExtraDataAmmo(const UInt32 id) const;
 
-				Skeleton::Skeleton skeleton;
-
-				return skeleton.HasExtraData(id, NodeUQ);
-			}
-
-			return false;
-		}
+		void Set(const char* id, float value);
+		void Set(const char* id, const char* str);
+		void Set(const char* id, int value);
+		void Set(const char* id, bool value);
 
 	private:
 
@@ -127,24 +262,32 @@ namespace UQ_Settings {
 		bool bMultiBow{ Default_bMultiBow };
 		bool bEquipStronger{ Default_bEquipStronger };
 		bool bBlackListAmmo{ Default_bBlackListAmmo };
+		bool bBlackListRace{ Default_bBlackListRace };
+		bool bBlackListCharacter{ Default_bBlackListCharacter};
 		bool bExtraData{ Default_bExtraData };
-		bool bHideQuiverOnSheathe{ Default_bHideQuiverOnSheathe };
-		bool bHideQuiverOnDraw{ Default_bHideQuiverOnDraw };
-		bool bHideBoltOnSheathe{ Default_bHideBoltOnSheathe };
-		bool bHideBoltOnDraw{ Default_bHideBoltOnDraw };
 
-		std::string sSavePath;
+		CharacterSelected<bool> bHideQuiverOnSheathe{ Default_bHideQuiverOnSheathe };
+		CharacterSelected<bool> bHideQuiverOnDraw{ Default_bHideQuiverOnDraw };
+		CharacterSelected<bool> bHideBoltOnSheathe{ Default_bHideBoltOnSheathe };
+		CharacterSelected<bool> bHideBoltOnDraw{ Default_bHideBoltOnDraw };
 
 		QuiverReEquipType iReEquipType{ Default_iReEquipType };
-	
+
+		std::string sSavePath;
+		std::string sKeywords;
+		std::string sBlackListAmmo;
+		std::string sBlackListRace;
+		std::string sBlackListCharacter;
+
 		WeapKeywords KeysList;
+
 		BlackList BlackListAmmo;
+		BlackList BlackListRace;
+		BlackList BlackListCharacter;
 
 		void ParseKeywords(const std::string& str);
-		void ParseBlackList(const std::string& str);
+		void ParseBlackList(const std::string& str, BlackList& blackList);
 	};
-
-	extern std::string ReadSettingIni(const std::string& key, const std::string& def, const std::string& app = "Main", const std::string& filename = UnequipQuiverIni);
 
 	extern UnequipQuiver_Settings UQSettings;
 };

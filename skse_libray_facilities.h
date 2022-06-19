@@ -69,5 +69,6 @@
 #include "skse64/PapyrusEvents.h"
 #include "skse64/PapyrusActor.h"
 #include "skse64/PapyrusArmor.h"
+#include "skse64/PapyrusValue.h"
 
 #endif

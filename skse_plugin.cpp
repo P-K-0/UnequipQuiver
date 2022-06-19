@@ -1,12 +1,16 @@
 
 #include "skse_plugin.h"
+#include "papyrus.h"
 
 namespace skse_plugin {
 
-	SKSEMessagingInterface* SKSE_Plugin::skse_msg_interface;
-	SKSETaskInterface* SKSE_Plugin::skse_task_interface;
-	PluginHandle SKSE_Plugin::plugHandle;
-	bool SKSE_Plugin::hasQuery;
+	bool SKSE_Plugin::hasQuery{ false };
+
+	PluginHandle SKSE_Plugin::plugHandle ;
+
+	SKSEPapyrusInterface* SKSE_Plugin::skse_papyrus_interface{ nullptr };
+	SKSEMessagingInterface* SKSE_Plugin::skse_msg_interface{ nullptr };
+	SKSETaskInterface* SKSE_Plugin::skse_task_interface{ nullptr };
 
 	void SKSE_Plugin::MsgCallback(SKSEMessagingInterface::Message* msg) noexcept
 	{
@@ -15,7 +19,7 @@ namespace skse_plugin {
 		switch (msg->type) {
 		case SKSEMessagingInterface::kMessage_DataLoaded:
 
-			UQ_Settings::UQSettings.ReadSettings();
+			UQ_Settings::UQSettings.ReadAllSettings();
 			break;
 
 		case SKSEMessagingInterface::kMessage_PostPostLoad:
@@ -50,17 +54,20 @@ namespace skse_plugin {
 	#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 		if (info) {
 
-			if (!Addresses::LoadDatabaseSE()) return false;
+			if (!Addresses::LoadDatabaseSE())
+				return false;
 		}
 		else {
 
-			if (!Addresses::LoadDatabaseAE()) return false;
+			if (!Addresses::LoadDatabaseAE())
+				return false;
 		}
 	#endif
 
 		if (IsEditor(skse)) return false;
 		if (!QueryMessaging(skse)) return false;
 		if (!QueryTask(skse)) return false;
+		if (!QueryPapyrus(skse)) return false;
 
 		return true;
 	}
@@ -71,7 +78,13 @@ namespace skse_plugin {
 			if (!Query(skse))
 				return false;
 
-		return skse_msg_interface ? skse_msg_interface->RegisterListener(plugHandle, "SKSE", MsgCallback) : false;
+		if (!skse_papyrus_interface || !skse_papyrus_interface->Register(papyrus::RegisterFunctions)) 
+			return false;
+
+		if (!skse_msg_interface || !skse_msg_interface->RegisterListener(plugHandle, "SKSE", MsgCallback))
+			return false;
+
+		return true;
 	}
 
 	void SKSE_Plugin::InitLog() noexcept
@@ -112,7 +125,7 @@ namespace skse_plugin {
 
 	_NODISCARD bool SKSE_Plugin::QueryMessaging(const SKSEInterface* skse) noexcept
 	{
-		if (!(skse_msg_interface = (SKSEMessagingInterface*)skse->QueryInterface(kInterface_Messaging))) {
+		if (!(skse_msg_interface = static_cast<SKSEMessagingInterface*>(skse->QueryInterface(kInterface_Messaging)))) {
 
 			_MESSAGE("Error Query Messaging Interface!");
 
@@ -124,9 +137,21 @@ namespace skse_plugin {
 
 	_NODISCARD bool SKSE_Plugin::QueryTask(const SKSEInterface* skse) noexcept
 	{
-		if (!(skse_task_interface = (SKSETaskInterface*)skse->QueryInterface(kInterface_Task))) {
+		if (!(skse_task_interface = static_cast<SKSETaskInterface*>(skse->QueryInterface(kInterface_Task)))) {
 
 			_MESSAGE("Error Query Task Interface!");
+
+			return false;
+		}
+
+		return true;
+	}
+
+	_NODISCARD bool SKSE_Plugin::QueryPapyrus(const SKSEInterface* skse) noexcept
+	{
+		if (!(skse_papyrus_interface = static_cast<SKSEPapyrusInterface*>(skse->QueryInterface(kInterface_Papyrus)))) {
+
+			_MESSAGE("Error Query Papyrus Interface!");
 
 			return false;
 		}

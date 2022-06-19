@@ -30,11 +30,10 @@ namespace UQ_Saves {
 
 		if (l > 0) {
 
-			char* strTemp = new char[l + 1];
-			ifs.read(&strTemp[0], l);
-			strTemp[l] = '\0';
-			v = strTemp;
-			delete[] strTemp;
+			v.assign(l, '\0');
+
+			for (auto& c : v)
+				ifs.read(&c, sizeof c);
 		}
 
 		return ifs;
@@ -102,15 +101,22 @@ namespace UQ_Saves {
 		bool ret{ false };
 
 		switch (flag) {
-		case UQFlags::uqLoad:
+
+		case UQFlags::uqLoad:	
+
 			ret = Read(file_bin, last);
 			break;
-		case UQFlags::uqSave:
+
+		case UQFlags::uqSave:	
+
 			ret = Write(file_bin, last);
 			break;
-		case UQFlags::uqDelete:
+
+		case UQFlags::uqDelete: 
+
 			ret = Delete(file_bin);
 			break;
+
 		case UQFlags::uqNothing:
 		default:
 			return;
@@ -126,12 +132,11 @@ namespace UQ_Saves {
 		if (!ifs)
 			return false;
 
-		int index{ 0 };
 		DataHandler * datahandler = DataHandler::GetSingleton();
 
 		if (datahandler) {
 
-			auto& l = last[EventsDispatch::PlayerID];
+			auto& l = last[EventsDispatch::GetPlayerID()];
 
 			l.ClearMultiBow();
 
@@ -166,7 +171,7 @@ namespace UQ_Saves {
 		if (datahandler) {
 
 			ModInfo *mod = nullptr;
-			auto& l = last[EventsDispatch::PlayerID];
+			auto& l = last[EventsDispatch::GetPlayerID()];
 
 			l.Visit([&](UInt32 weap_id, UInt32 ammo_id, UInt32 index) {
 
@@ -190,7 +195,7 @@ namespace UQ_Saves {
 	{
 		if (filename.length() >= suffix.length()) {
 
-			size_t npos{ filename.length() - suffix.length() };
+			size_t npos{ filename.length() - suffix.length() }; 
 
 			if (_strcmpi(filename.substr(npos).c_str(), suffix.c_str()) == 0)
 				return filename.substr(0, npos);
@@ -214,7 +219,9 @@ namespace UQ_Saves {
 			std::string skyrim_ini{ file_path };
 			skyrim_ini += "skyrim.ini";
 
-			std::string sLocalSavePath = UQ_Settings::ReadSettingIni("sLocalSavePath", "", "General", skyrim_ini);
+			UQ_Settings::IniSettings ini{ skyrim_ini };
+
+			std::string sLocalSavePath = ini.ReadAs<std::string>("sLocalSavePath", "General");
 
 			return file_path += !sLocalSavePath.empty() ? sLocalSavePath : "Saves\\";
 		}

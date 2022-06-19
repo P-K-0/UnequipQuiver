@@ -3,73 +3,191 @@
 
 namespace UQ_Settings {
 
-	std::string ReadSettingIni(const std::string& key, const std::string& def, const std::string& app, const std::string& filename)
+	std::string IniSettings::ReadSettingIni(const std::string& key, const std::string& app, const std::string def)
 	{
-		char buffer[4096];
+		const char* buffer = ini.GetValue(app.c_str(), key.c_str(), def.c_str());
 
-		if (GetPrivateProfileString(app.c_str(), key.c_str(), def.c_str(), &buffer[0], sizeof buffer, filename.c_str()) > 0)
-			return std::string(buffer);
-
-		return def;
+		return std::string(buffer);
 	}
 
-	template<typename T>
-	std::string ReadSettingT(const std::string& key, T def) { return ReadSettingIni(key, std::to_string(static_cast<T>(def))); }
-
-	int ReadSetting(const std::string& key, int def) { return std::stoi(ReadSettingT(key, def)); }
-	bool ReadSetting(const std::string& key, bool def) { return std::stoi(ReadSettingT(key, def)); }
-	float ReadSetting(const std::string& key, float def) { return std::stof(ReadSettingT(key, def)); }
-	QuiverReEquipType ReadSetting(const std::string& key, QuiverReEquipType def) { return static_cast<QuiverReEquipType>(ReadSetting(key, static_cast<int>(def))); }
-
-#define READSETTINGT(key) (key) = ReadSetting(# key, Default_ ## key); \
-						  _DMESSAGE(# key " = %i", key);
-#define READSETTINGS(key, v) (key) = ReadSettingIni(# key, v)
-
-	void UnequipQuiver_Settings::ReadSettings()
+	void UnequipQuiver_Settings::ReadSettings(const std::string& Filename, bool readDefault)
 	{
-		READSETTINGT(bEnablePC);
+		_DMESSAGE("ReadSettings : %s", Filename.c_str());
 
-		READSETTINGT(bEnableNPC);
+		IniSettings ini{ Filename };
 
-		READSETTINGT(bSpell);
+		if (!ini) return;
 
-		READSETTINGT(bWeapon);
+#define READSETTINGS(val) \
+		val = ini.ReadAs(# val, "Main", readDefault ? Default_ ## val : val); \
+		_DMESSAGE(# val " = %i", val);
 
-		READSETTINGT(bShield);
+#define READSETTINGSS(val) \
+		val = ini.ReadAs(# val, "Main", readDefault ? Default_ ## val : val); \
+		_DMESSAGE(# val " = %s", val.c_str());
 
-		READSETTINGT(bBow);
+#define READSETTINGSENUM(val) \
+		val[CharacterType::PC] = ini.ReadAs(# val, "Main", readDefault ? Default_ ## val : val[CharacterType::PC]); \
+		val[CharacterType::NPC] = ini.ReadAs(# val "NPC", "Main", readDefault ? Default_ ## val : val[CharacterType::NPC]); \
+		_DMESSAGE(# val " = %i", val[CharacterType::PC]); \
+		_DMESSAGE(# val "NPC = %i", val[CharacterType::NPC]); 
 
-		READSETTINGT(bCrossbow);
+		READSETTINGS(bEnablePC);
 
-		READSETTINGT(iReEquipType);
+		READSETTINGS(bEnableNPC);
 
-		READSETTINGT(bCheckWeaponByKeywords);
+		READSETTINGS(bSpell);
 
-		READSETTINGT(bSavefile);
+		READSETTINGS(bWeapon);
 
-		READSETTINGS(sSavePath, "");
+		READSETTINGS(bShield);
+
+		READSETTINGS(bBow);
+
+		READSETTINGS(bCrossbow);
+
+		READSETTINGS(iReEquipType);
+
+		READSETTINGS(bCheckWeaponByKeywords);
+
+		READSETTINGS(bSavefile);
+
+		READSETTINGSS(sSavePath);
 		if (!sSavePath.empty() && sSavePath.substr(sSavePath.length() -1, 1) != "\\")
 			sSavePath += "\\";
 
-		READSETTINGT(bMultiBow);
+		READSETTINGS(bMultiBow);
 
-		READSETTINGT(bEquipStronger);
+		READSETTINGS(bEquipStronger);
 
-		ParseKeywords(ReadSettingIni("sKeywords", Default_sKeywords));
-	
-		READSETTINGT(bBlackListAmmo);
-	
-		ParseBlackList(ReadSettingIni("sBlackListAmmo", Default_sBlackListAmmo));
+		READSETTINGSS(sKeywords);
+		ParseKeywords(sKeywords);
 
-		READSETTINGT(bExtraData);
+		READSETTINGS(bBlackListAmmo);
+		READSETTINGSS(sBlackListAmmo);
+		ParseBlackList(sBlackListAmmo, BlackListAmmo);
 
-		READSETTINGT(bHideQuiverOnSheathe);
+		READSETTINGS(bBlackListRace);
+		READSETTINGSS(sBlackListRace);
+		ParseBlackList(sBlackListRace, BlackListRace);
 
-		READSETTINGT(bHideQuiverOnDraw);
+		READSETTINGS(bBlackListCharacter);
+		READSETTINGSS(sBlackListCharacter);
+		ParseBlackList(sBlackListCharacter, BlackListCharacter);
 
-		READSETTINGT(bHideBoltOnSheathe);
+		READSETTINGS(bExtraData);
 
-		READSETTINGT(bHideBoltOnDraw);
+		READSETTINGSENUM(bHideQuiverOnSheathe);
+
+		READSETTINGSENUM(bHideQuiverOnDraw);
+
+		READSETTINGSENUM(bHideBoltOnSheathe);
+
+		READSETTINGSENUM(bHideBoltOnDraw);
+	}
+
+	void UnequipQuiver_Settings::ReadAllSettings()
+	{
+		DataHandler* data = DataHandler::GetSingleton();
+		const ModInfo* info{ nullptr };
+
+		if (data && (info = data->LookupModByName("UnequipQuiverSE.esp")) && info->IsActive()) {
+
+			ReadSettings(UnequipQuiverIniMCM);
+			ReadSettings(UnequipQuiverIniSettings, false);
+
+			return;
+		}
+
+		ReadSettings(UnequipQuiverIni);
+	}
+
+	const bool UnequipQuiver_Settings::CheckExtraDataAmmo(const UInt32 id) const
+	{
+		if (bExtraData) {
+
+			Skeleton::Skeleton skeleton;
+
+			return skeleton.HasExtraData(id, NodeUQ);
+		}
+
+		return false;
+	}
+
+	void UnequipQuiver_Settings::Set(const char* id, float value)
+	{
+
+	}
+
+	void UnequipQuiver_Settings::Set(const char* id, const char* str)
+	{
+
+	}
+
+	void UnequipQuiver_Settings::Set(const char* id, int value)
+	{
+		for (auto& s : vSettings)
+			if (_strcmpi(s.first.c_str(), id) == 0)
+				switch (s.second) {
+
+				case SettingsIndex::ReEquipType: iReEquipType = static_cast<QuiverReEquipType>(value); return;
+
+				}
+	}
+
+	void UnequipQuiver_Settings::Set(const char* id, bool value)
+	{
+		for (auto& s : vSettings)
+			if (_strcmpi(s.first.c_str(), id) == 0)
+				switch (s.second) {
+
+				case SettingsIndex::EnablePC: bEnablePC = value; return;
+
+				case SettingsIndex::EnableNPC: bEnableNPC = value; return;
+
+				case SettingsIndex::Spell: bSpell = value; return;
+
+				case SettingsIndex::Weapon: bWeapon = value; return;
+
+				case SettingsIndex::Shield: bShield = value; return;
+
+				case SettingsIndex::Bow: bBow = value; return;
+
+				case SettingsIndex::Crossbow: bCrossbow = value; return;
+
+				case SettingsIndex::CheckWeaponByKeywords: bCheckWeaponByKeywords = value; return;
+
+				case SettingsIndex::EquipStronger: bEquipStronger = value; return;
+
+				case SettingsIndex::Savefile: bSavefile = value; return;
+
+				case SettingsIndex::MultiBow: bMultiBow = value; return;
+
+				case SettingsIndex::BlackListAmmo: bBlackListAmmo = value; return;
+
+				case SettingsIndex::BlackListRace: bBlackListRace = value; return;
+
+				case SettingsIndex::BlackListCharacter: bBlackListCharacter = value; return;
+
+				case SettingsIndex::ExtraData: bExtraData = value; return;
+
+				case SettingsIndex::HideQuiverOnSheathe: bHideQuiverOnSheathe[CharacterType::PC] = value; return;
+
+				case SettingsIndex::HideQuiverOnDraw: bHideQuiverOnDraw[CharacterType::PC] = value; return;
+
+				case SettingsIndex::HideBoltOnSheathe: bHideBoltOnSheathe[CharacterType::PC] = value; return;
+
+				case SettingsIndex::HideBoltOnDraw: bHideBoltOnDraw[CharacterType::PC] = value; return;
+
+				case SettingsIndex::HideQuiverOnSheatheNPC: bHideQuiverOnSheathe[CharacterType::NPC] = value; return;
+
+				case SettingsIndex::HideQuiverOnDrawNPC: bHideQuiverOnDraw[CharacterType::NPC] = value; return;
+
+				case SettingsIndex::HideBoltOnSheatheNPC: bHideBoltOnSheathe[CharacterType::NPC] = value; return;
+
+				case SettingsIndex::HideBoltOnDrawNPC: bHideBoltOnDraw[CharacterType::NPC] = value; return;
+
+				}
 	}
 
 	template<typename Func = std::function<void(const std::string&)>>
@@ -105,9 +223,9 @@ namespace UQ_Settings {
 			sort(KeysList);	
 	}
 
-	void UnequipQuiver_Settings::ParseBlackList(const std::string& str)
+	void UnequipQuiver_Settings::ParseBlackList(const std::string& str, BlackList& blackList)
 	{
-		BlackListAmmo.clear();
+		blackList.clear();
 
 		std::regex reg{ "(\\w*.\\w*):(\\w*)"};
 		std::smatch matches;
@@ -116,7 +234,7 @@ namespace UQ_Settings {
 
 		DataHandler * datahandler = DataHandler::GetSingleton();
 
-		if (datahandler && bBlackListAmmo) {
+		if (datahandler) {
 
 			ParseString(str, [&](const std::string& s) {
 
@@ -142,7 +260,7 @@ namespace UQ_Settings {
 						id |= std::strtol(matches[2].str().c_str(), &end, 16) & 0xffffff;
 #endif
 
-						BlackListAmmo.push_back(id);
+						blackList.push_back(id);
 
 						_DMESSAGE("%s\t:\t 0x%.8X", matches[1].str().c_str(), id);
 					}
@@ -150,8 +268,8 @@ namespace UQ_Settings {
 			});
 		}
 
-		if (!BlackListAmmo.empty())
-			sort(BlackListAmmo);
+		if (!blackList.empty())
+			sort(blackList);
 	}
 
 	UnequipQuiver_Settings UQSettings;

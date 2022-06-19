@@ -5,15 +5,13 @@
 
 namespace EventsDispatch {
 
-	constexpr UInt32 PlayerID = 0x14;
-
 	class TaskEquip : public TaskDelegate {
 
 	public:
 
 		TaskEquip(Actor* act, TESForm* frm)
 			: actor{ act }, form{ frm }	{}
-		virtual ~TaskEquip() {}
+		~TaskEquip() {}
 
 		void Run();
 		void Dispose() {}
@@ -85,6 +83,8 @@ namespace EventsDispatch {
 			for (size_t i = 0; i < vAmmo.size(); i++) {
 				f(T(), vAmmo[i], i);
 				
+				//(*it).first;	= ID
+				//(*it).second;	= Last
 				auto& b = vmAmmo[i];
 				for (auto& it = b.begin(); it != b.end(); it++)
 					f((*it).first, (*it).second, i);
@@ -107,10 +107,15 @@ namespace EventsDispatch {
 
 	public:
 
+		VectorHideNode(const VectorHideNode&) = delete;
+		VectorHideNode& operator=(const VectorHideNode&) = delete;
+		VectorHideNode(VectorHideNode&&) = delete;
+		VectorHideNode& operator=(VectorHideNode&&) = delete;
+
 		VectorHideNode() 
 		{
 			push_back(HideNode{ "QUIVER", "QUIVERChesko", "QUIVERLeftHipBolt", "HDT QUIVER" });
-			push_back(HideNode{ "BOLTDefault", "BOLTChesko", "BOLTLeftHipBolt", "BOLT", "BOLTXP32", "BOLT_QUIVER", "BOLTABQ" });
+			push_back(HideNode{ "QUIVER", "BOLTDefault", "BOLTChesko", "BOLTLeftHipBolt", "BOLT", "BOLTXP32", "BOLT_QUIVER", "BOLTABQ" });
 		}
 
 		virtual ~VectorHideNode() {}
@@ -123,7 +128,8 @@ namespace EventsDispatch {
 		public BSTEventSink<TESLoadGameEvent>,
 		public BSTEventSink<TESObjectLoadedEvent>,
 		public BSTEventSink<TESInitScriptEvent>,
-		public BSTEventSink<SKSEActionEvent>
+		public BSTEventSink<SKSEActionEvent>,
+		public BSTEventSink<TESSwitchRaceCompleteEvent>
 	{
 
 		enum class TypeWeapon {
@@ -137,6 +143,11 @@ namespace EventsDispatch {
 
 		using LastAmmoEquipped = std::unordered_map<UInt32, LastAmmo<>>;
 
+		Events(const Events&) = delete;
+		Events& operator=(const Events&) = delete;
+		Events(Events&&) = delete;
+		Events& operator=(Events&&) = delete;
+
 		Events() {}
 		virtual ~Events() {}
 
@@ -144,6 +155,7 @@ namespace EventsDispatch {
 		virtual EventResult ReceiveEvent(TESLoadGameEvent* evn, EventDispatcher<TESLoadGameEvent>* dispatcher);
 		virtual EventResult ReceiveEvent(TESObjectLoadedEvent* evn, EventDispatcher<TESObjectLoadedEvent>* dispatcher);
 		virtual EventResult ReceiveEvent(TESInitScriptEvent* evn, EventDispatcher<TESInitScriptEvent>* dispatcher);
+		virtual EventResult ReceiveEvent(TESSwitchRaceCompleteEvent* evn, EventDispatcher<TESSwitchRaceCompleteEvent>* dispatcher);
 		virtual EventResult ReceiveEvent(SKSEActionEvent* evn, EventDispatcher<SKSEActionEvent>* dispatcher);
 
 		LastAmmoEquipped& GetLastAmmoEquipped() { return lastAmmo; }
@@ -172,6 +184,7 @@ namespace EventsDispatch {
 		bool IsWeapon(TESForm* form);
 		bool IsActorEnabled(Actor* act);
 		bool IsInventoryOpen();
+		const bool IsPlayer(Actor* actor) { return (isPlayer = (actor == (*g_thePlayer))); }
 
 		void EquipQuiver(Actor* act, TESForm* form);
 		void UnequipQuiver(Actor* act, TESForm* form = nullptr, TypeWeapon isBow = TypeWeapon::Nothing);
@@ -179,9 +192,15 @@ namespace EventsDispatch {
 
 		void OnEquip(Actor* actor, TESForm* form);
 		void OnUnEquip(Actor* actor, TESForm* form);
+
+		bool isPlayer{ false };
+		UInt32 characterId{};
+		UInt32 raceId{};
 	};
 
 	extern Events gEvents;
+
+	inline const UInt32 GetPlayerID() { return (*g_thePlayer)->formID; }
 
 	extern void RegisterEventDispatch();
 };
