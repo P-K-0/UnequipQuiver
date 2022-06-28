@@ -10,7 +10,7 @@
 namespace EventsDispatch {
 
 #define UNEQUIPITEMEX(actor, item, sound) \
-	bool checkRet = UQ_Settings::UQSettings.CheckBlackListAmmo(item->type->formID) | UQ_Settings::UQSettings.CheckExtraDataAmmo(item->type->formID); \
+	bool checkRet = settings.CheckBlackListAmmo(item->type->formID) | settings.CheckExtraDataAmmo(item->type->formID); \
     if (!checkRet) papyrusActor::UnequipItemEx(actor, item->type, 0, false, sound); 
 
 #define UNEQUIPITEM(actor, item) UNEQUIPITEMEX(actor, item, true)
@@ -23,12 +23,6 @@ namespace EventsDispatch {
 
 			EQUIPITEM(actor, form);
 		}
-	}
-
-	HideNode::HideNode(const std::initializer_list<std::string>& list)
-	{
-		for (auto& l : list)
-			vStrNodes.push_back(l);
 	}
 
 	void HideNode::Hide(Actor* actor, bool hide)
@@ -53,9 +47,9 @@ namespace EventsDispatch {
 		ExtraContainerChanges::Data* containerData = containerChanges ? containerChanges->data : NULL;
 
 		if (containerData && containerData->objList)
-			for (int index_item = 0; index_item < containerData->objList->Count(); index_item++) {
+			for (int index = 0; index < containerData->objList->Count(); index++) {
 
-				InventoryEntryData* entryData = containerData->objList->GetNthItem(index_item);
+				InventoryEntryData* entryData = containerData->objList->GetNthItem(index);
 
 				if (entryData && entryData->type && entryData->type->IsAmmo())
 					if (func(entryData))
@@ -109,7 +103,7 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	Events::TypeWeapon Events::IsBow(TESForm* form)
+	TypeWeapon Events::IsBow(TESForm* form)
 	{
 		TESObjectWEAP* weap = nullptr;
 
@@ -155,16 +149,16 @@ namespace EventsDispatch {
 
 	bool Events::IsWeapon(TESForm* form)
 	{
-		using namespace UQ_Settings;
+		auto& settings = UQ_Settings::Settings::GetInstance();
 
 		TESObjectWEAP* weap = nullptr;
 
-		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)) && !UQSettings.empty())
+		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)) && !settings.empty())
 			for (int i = 0; i < weap->keyword.numKeywords; i++) {
 
 				BGSKeyword* keyword = weap->keyword.keywords[i];
 
-				if (keyword && binary_search(UQSettings, keyword->keyword.Get()))
+				if (keyword && binary_search(settings, keyword->keyword.Get()))
 					return true;
 			}
 
@@ -187,20 +181,22 @@ namespace EventsDispatch {
 		return false;
 	}
 
-	void Events::EquipQuiver(Actor* act, TESForm* form)
+	void Events::EquipQuiver(Actor* act, TESForm* form, CharacterType charType)
 	{
-		if (!isPlayer) {
+		if (charType == CharacterType::NPC) {
 
 			EQUIPITEM(act, form);
+
+			return;
+		}
+
+		if (!IsInventoryOpen()) {
+
+			skse_plugin::SKSE_Plugin::GetInstance().AddTask(new TaskEquip(act, form));
 		}
 		else {
 
-			if (skse_plugin::SKSE_Plugin::skse_task_interface && !IsInventoryOpen())
-				skse_plugin::SKSE_Plugin::skse_task_interface->AddTask(new TaskEquip(act, form));
-			else {
-
-				EQUIPITEM(act, form);
-			}
+			EQUIPITEM(act, form);
 		}
 	}
 
@@ -217,12 +213,12 @@ namespace EventsDispatch {
 		if (isBow == TypeWeapon::Nothing)
 			isBow = IsBow(form);
 
-		using namespace UQ_Settings;
+		auto& settings = UQ_Settings::Settings::GetInstance();
 
-		bool isSpell{ UQSettings.IsEnabledSpell() ? IsSpell(form) : false };
-		bool isShield{ UQSettings.IsEnabledShield() ? IsShield(form) : false };
-		bool isWeapon{ UQSettings.IsEnabledWeapon() ?
-			(UQSettings.CheckWeapBykeywords() ? IsWeapon(form) : (isBow == TypeWeapon::AnotherWeapon)) : false };
+		bool isSpell{ settings.IsEnabledSpell() ? IsSpell(form) : false };
+		bool isShield{ settings.IsEnabledShield() ? IsShield(form) : false };
+		bool isWeapon{ settings.IsEnabledWeapon() ?
+			(settings.CheckWeapBykeywords() ? IsWeapon(form) : (isBow == TypeWeapon::AnotherWeapon)) : false };
 
 		if (!isSpell && !isShield && !isWeapon) return;
 
@@ -234,23 +230,21 @@ namespace EventsDispatch {
 		});
 	}
 
-	void Events::HideQuiver(Actor* act, bool sheathe)
+	void Events::HideQuiver(Actor* act, CharacterType charType, bool drawn)
 	{
-		using namespace UQ_Settings;
-
-		UQ_Settings::CharacterType charType = (isPlayer ? UQ_Settings::CharacterType::PC : UQ_Settings::CharacterType::NPC);
+		auto& settings = UQ_Settings::Settings::GetInstance();
 
 		if (TESForm* weap = act->GetEquippedObject(true))
 			switch (IsBow(weap)) {
 
 			case TypeWeapon::Bow:
 
-				hideNode[TypeNode::Quiver].Hide(act, UQSettings.IsHideQuiverOnSheathe(sheathe, charType));
+				hideNode[TypeNode::Quiver].Hide(act, settings.IsHideQuiverOnSheathe(drawn, charType));
 				break;
 
 			case TypeWeapon::CBow:
 
-				hideNode[TypeNode::Bolt].Hide(act, UQSettings.IsHideBoltOnSheathe(sheathe, charType));
+				hideNode[TypeNode::Bolt].Hide(act, settings.IsHideBoltOnSheathe(drawn, charType));
 				break;
 
 			case TypeWeapon::AnotherWeapon:
@@ -259,99 +253,148 @@ namespace EventsDispatch {
 			}
 	}
 
-	void Events::OnEquip(Actor* actor, TESForm* form)
+	void Events::CheckLastAmmo(Actor* actor, TESForm* form, CharacterType& charType)
 	{
-		using namespace UQ_Settings;
+		auto& settings = UQ_Settings::Settings::GetInstance();
+
+		if (charType == CharacterType::PC && lastPlayerAmmo != 0) { 
+
+			TESForm* frmNewItem{ nullptr };
+			TESAmmo* ammo{ nullptr };
+			bool isFound{ false };
+			float damage{ 0.0 };
+			SInt32 count{ 0 };
+
+			int isBoltEquipped = IsBolt(form);
+
+			FlagsLastAmmo flags = settings.IsEnabledEquipStronger() ? FlagsLastAmmo::Stronger : FlagsLastAmmo::Nothing;
+			flags |= settings.IsEnabledEquipLargerAmount() ? FlagsLastAmmo::Amount : FlagsLastAmmo::Nothing;
+
+			VisitContainer(actor, [&](InventoryEntryData* entry) {
+
+				TESForm* frmItem{ entry->type };
+
+				if (!(ammo = DYNAMIC_CAST(frmItem, TESForm, TESAmmo)) || isBoltEquipped != IsBolt(frmItem))
+					return false;
+
+				SInt32 countItems = CountItems(actor, frmItem);
+
+				switch (flags) {
+
+				case FlagsLastAmmo::Stronger:
+
+					if (damage < ammo->settings.damage) {
+
+						damage = ammo->settings.damage;
+						frmNewItem = frmItem;
+					}
+
+					break;
+
+				case FlagsLastAmmo::Amount:
+
+					if (count < countItems) {
+
+						count = countItems;
+						frmNewItem = frmItem;
+					}
+
+					break;
+
+				case FlagsLastAmmo::StrongerAmount:
+
+					if (damage < ammo->settings.damage) {
+
+						damage = ammo->settings.damage;
+						count = 0;
+					}
+
+					if (damage == ammo->settings.damage && count < countItems) {
+
+						count = countItems;
+						frmNewItem = frmItem;
+					}
+
+					break;
+				}
+
+				if (!isFound && countItems > 0) 
+					isFound = lastPlayerAmmo == frmItem->formID;
+
+				return false;
+			});
+
+			lastPlayerAmmo = 0;
+
+			if (frmNewItem && !isFound) 
+				EquipQuiver(actor, frmNewItem, charType);
+		}
+	}
+
+	void Events::OnEquip(Actor* actor, TESForm* form, CharacterType charType)
+	{
 
 		if (!actor || !form || form->IsArmor())
 			return;
 
-		TESAmmo* ammo = nullptr;
-		TESForm* frm_damage = nullptr;
-		int isBolt{ 0 };
-		float damage{ 0 };
+		if (form->IsAmmo()) {
 
-		if (!form->IsAmmo()) {
+			CheckLastAmmo(actor, form, charType);
 
-			TypeWeapon isBow{ IsBow(form) };
+			return;
+		}
 
-			if (isBow != TypeWeapon::Bow && isBow != TypeWeapon::CBow) {
+		TypeWeapon isBow{ IsBow(form) };
 
-				UnequipQuiver(actor, form, isBow);
-			}
-			else {
+		if (isBow != TypeWeapon::Bow && isBow != TypeWeapon::CBow) {
 
-				UInt32 weap_id { isPlayer && UQSettings.IsEnabledMultiBow() ? form->formID : 0 };
-
-				auto& lAmmo = lastAmmo[characterId];
-
-				VisitContainer(actor, [&](InventoryEntryData* entry) {
-
-					TESForm* frmItem{ entry->type };
-
-					isBolt = IsBolt(frmItem);
-
-					if ((isBolt && isBow == TypeWeapon::CBow) || (!isBolt && isBow == TypeWeapon::Bow))
-						switch (UQSettings.GetQuiverReEquipType()) {
-						case QuiverReEquipType::QRE_DEFAULT:
-
-							// fix NPCs
-							if (!isPlayer) {
-
-								EquipQuiver(actor, frmItem);
-
-								return true;
-							}
-
-							break;
-
-						case QuiverReEquipType::QRE_LAST:
-
-							if (lAmmo.GetLast(isBolt, weap_id) == frmItem->formID) {
-
-								EquipQuiver(actor, frmItem);
-
-								return true;
-							}
-
-							break;
-
-						case QuiverReEquipType::QRE_STRONGER:
-
-							if ((ammo = DYNAMIC_CAST(frmItem, TESForm, TESAmmo)) && damage < ammo->settings.damage) {
-
-								damage = ammo->settings.damage;
-								frm_damage = frmItem;
-							}
-
-							break;
-						}
-
-					return false;
-					});
-
-				if (damage > 0 && frm_damage) {
-
-					EquipQuiver(actor, frm_damage);
-				}
-			}
-
-			HideQuiver(actor);
+			UnequipQuiver(actor, form, isBow);
 		}
 		else {
 
-			if (isPlayer && lastPlayerAmmo != 0 && UQSettings.IsEnabledEquipStronger()) {
+			auto& settings = UQ_Settings::Settings::GetInstance();
 
-				int isBoltEquipped = IsBolt(form);
-				bool isFound{ false };
+			UInt32 weap_id { charType == CharacterType::PC && settings.IsEnabledMultiBow() ? form->formID : 0 };
 
-				VisitContainer(actor, [&](InventoryEntryData* entry) {
+			auto& lAmmo = lastAmmo[actor->formID];
 
-					TESForm* frmItem{ entry->type };
+			int isBolt{ 0 };
+			float damage{ 0.0 };
+			TESForm* frm_damage{ nullptr };
+			TESAmmo* ammo{ nullptr };
 
-					isBolt = IsBolt(frmItem);
+			VisitContainer(actor, [&](InventoryEntryData* entry) {
 
-					if (isBolt == isBoltEquipped) {
+				TESForm* frmItem{ entry->type };
+
+				isBolt = IsBolt(frmItem);
+
+				if ((isBolt && isBow == TypeWeapon::CBow) || (!isBolt && isBow == TypeWeapon::Bow))
+					switch (settings.GetQuiverReEquipType()) {
+					case UQ_Settings::QuiverReEquipType::Default:
+
+						// fix NPCs
+						if (charType == CharacterType::NPC) {
+
+							EquipQuiver(actor, frmItem, charType);
+
+							return true;
+						}
+
+						break;
+
+					case UQ_Settings::QuiverReEquipType::Last:
+
+						if (lAmmo.GetLast(isBolt, weap_id) == frmItem->formID) {
+
+							EquipQuiver(actor, frmItem, charType);
+
+							return true;
+						}
+
+						break;
+
+					case UQ_Settings::QuiverReEquipType::Stronger:
 
 						if ((ammo = DYNAMIC_CAST(frmItem, TESForm, TESAmmo)) && damage < ammo->settings.damage) {
 
@@ -359,70 +402,63 @@ namespace EventsDispatch {
 							frm_damage = frmItem;
 						}
 
-						if (!isFound && CountItems(actor, frmItem) > 0)
-							isFound = lastPlayerAmmo == frmItem->formID;
+						break;
 					}
 
-					return false;
-				});
+				return false;
+			});
 
-				lastPlayerAmmo = 0;
-
-				if (damage > 0 && frm_damage && !isFound) {
-
-					EquipQuiver(actor, frm_damage);
-				
-					return;
-				}				
-			}
+			if (damage > 0 && frm_damage)
+				EquipQuiver(actor, frm_damage, charType);
 		}
+
+		HideQuiver(actor, charType);
 	}
 
-	void Events::OnUnEquip(Actor* actor, TESForm* form)
+	void Events::OnUnEquip(Actor* actor, TESForm* form, CharacterType charType)
 	{
-		using namespace UQ_Settings;
-
 		if (!actor || !form || form->IsArmor())
 			return;
 
-		if (!form->IsAmmo()) {
+		if (form->IsAmmo()) {
 
-			TypeWeapon isBow{ IsBow(form) };
-			bool unequip{ true };
+			SetLastAmmo(charType, form->formID);
 
-			if (!UQSettings.IsEnabledBow() && isBow == TypeWeapon::Bow)
-				unequip = false;
-
-			if (!UQSettings.IsEnabledCrossbow() && isBow == TypeWeapon::CBow)
-				unequip = false;
-
-			if (isBow == TypeWeapon::Bow || isBow == TypeWeapon::CBow) {
-
-				UInt32 weap_id{ 0 };
-
-				if (isPlayer && UQSettings.IsEnabledMultiBow())
-					weap_id = form->formID;
-
-				auto& lAmmo = lastAmmo[characterId];
-
-				VisitContainer(actor, [&](InventoryEntryData* entry) {
-
-					if (IsWorn(entry) && UQSettings.GetQuiverReEquipType() == QuiverReEquipType::QRE_LAST) 
-						lAmmo.SetLast(IsBolt(entry->type), entry->type->formID, weap_id);
-
-					if (unequip) {
-
-						UNEQUIPITEM(actor, entry);
-					}
-
-					return false;
-				});
-			}
+			return;
 		}
-		else {
 
-			if (isPlayer)
-				lastPlayerAmmo = form->formID;
+		TypeWeapon isBow{ IsBow(form) };
+		bool unequip{ true };
+
+		auto& settings = UQ_Settings::Settings::GetInstance();
+
+		if (!settings.IsEnabledBow() && isBow == TypeWeapon::Bow)
+			unequip = false;
+
+		if (!settings.IsEnabledCrossbow() && isBow == TypeWeapon::CBow)
+			unequip = false;
+
+		if (isBow == TypeWeapon::Bow || isBow == TypeWeapon::CBow) {
+
+			UInt32 weap_id{ 0 };
+
+			if (charType == CharacterType::PC && settings.IsEnabledMultiBow())
+				weap_id = form->formID;
+
+			auto& lAmmo = lastAmmo[actor->formID];
+
+			VisitContainer(actor, [&](InventoryEntryData* entry) {
+
+				if (IsWorn(entry) && settings.GetQuiverReEquipType() == UQ_Settings::QuiverReEquipType::Last)
+					lAmmo.SetLast(IsBolt(entry->type), entry->type->formID, weap_id);
+
+				if (unequip) {
+
+					UNEQUIPITEM(actor, entry);
+				}
+
+				return false;
+			});
 		}
 	}
 
@@ -436,16 +472,16 @@ namespace EventsDispatch {
 
 				if (cell->refData.refArray[idx].unk08 && cell->refData.refArray[idx].ref) {
 
-					ActorEvent(cell->refData.refArray[idx].ref, [&](Actor* act) {
+					ActorEvent(cell->refData.refArray[idx].ref, [&](Actor* act, CharacterType charType) {
 #else
 			for (UInt32 idx = 0; idx < cell->objectList.count; idx++) {
 
 				if (cell->objectList[idx]) {
 
-					ActorEvent(cell->objectList[idx], [&](Actor* act) {
+					ActorEvent(cell->objectList[idx], [&](Actor* act, CharacterType charType) {
 #endif	
 
-						HideQuiver(act);
+						HideQuiver(act, charType);
 						UnequipQuiver(act);
 					});
 				}
@@ -456,36 +492,34 @@ namespace EventsDispatch {
 	template<typename T, typename Func>
 	EventResult Events::ActorEvent(T refr, Func func)
 	{
-		using namespace UQ_Settings;
-
 		Actor* act = nullptr;
+		CharacterType charType;
 
-		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor)) && IsActorEnabled(act))
-			func(act);
+		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor)) && IsActorEnabled(act, charType))
+			func(act, charType);
 
 		return kEvent_Continue;
 	}
 
-	bool Events::IsActorEnabled(Actor* act)
+	bool Events::IsActorEnabled(Actor* actor, CharacterType& charType)
 	{
-		using namespace UQ_Settings;
-
-		if (act->IsDead(1) && !act->race)
+		if (actor->IsDead(1) && !actor->race)
 			return false;
 
-		if (IsPlayer(act) && !UQSettings.IsEnabledPC())
+		auto& settings = UQ_Settings::Settings::GetInstance();
+
+		charType = GetCharacterType(actor);
+
+		if (charType == CharacterType::PC && !settings.IsEnabledPC())
 			return false;
 			
-		if (!isPlayer && !UQSettings.IsEnabledNPC())
+		if (charType == CharacterType::NPC && !settings.IsEnabledNPC())
 			return false;
 
-		raceId = act->race->formID;
-		characterId = act->formID;
-
-		if (UQSettings.CheckBlackListRace(raceId))
+		if (settings.CheckBlackListRace(actor->race->formID))
 			return false;
 
-		if (UQSettings.CheckBlackListCharacter(characterId))
+		if (settings.CheckBlackListCharacter(actor->formID))
 			return false;
 
 		return true;
@@ -495,12 +529,12 @@ namespace EventsDispatch {
 	{
 		if (!evn) return kEvent_Continue;
 
-		return ActorEvent(evn->reference, [&](Actor* act) {
+		return ActorEvent(evn->reference, [&](Actor* act, CharacterType charType) {
 
 			TESForm* form = LookupFormByID(evn->object);
 
 			if (form && form->Has3D())
-				evn->equipped ? OnEquip(act, form) : OnUnEquip(act, form);
+				evn->equipped ? OnEquip(act, form, charType) : OnUnEquip(act, form, charType);
 			});
 	}
 
@@ -525,9 +559,9 @@ namespace EventsDispatch {
 		TESObjectREFR* refr = nullptr;
 
 		if (form && (refr = DYNAMIC_CAST(form, TESForm, TESObjectREFR)))
-			ActorEvent(refr, [&](Actor* act)  { 
+			ActorEvent(refr, [&](Actor* act, CharacterType charType)  {
 			
-					HideQuiver(act);
+					HideQuiver(act, charType);
 					UnequipQuiver(act);
 				});
 
@@ -537,9 +571,9 @@ namespace EventsDispatch {
 	EventResult Events::ReceiveEvent(TESInitScriptEvent* evn, EventDispatcher<TESInitScriptEvent>* dispatcher)
 	{
 		if (evn && evn->reference)
-			ActorEvent(evn->reference, [&](Actor* act) { 
+			ActorEvent(evn->reference, [&](Actor* act, CharacterType charType) {
 
-					HideQuiver(act); 
+					HideQuiver(act, charType);
 					UnequipQuiver(act);
 				});
 
@@ -549,9 +583,9 @@ namespace EventsDispatch {
 	EventResult Events::ReceiveEvent(TESSwitchRaceCompleteEvent* evn, EventDispatcher<TESSwitchRaceCompleteEvent>* dispatcher)
 	{
 		if (evn && evn->ref)
-			ActorEvent(evn->ref, [&](Actor* act) {
+			ActorEvent(evn->ref, [&](Actor* act, CharacterType charType) {
 
-				HideQuiver(act);
+				HideQuiver(act, charType);
 				UnequipQuiver(act);
 			});
 
@@ -560,62 +594,65 @@ namespace EventsDispatch {
 
 	EventResult Events::ReceiveEvent(SKSEActionEvent* evn, EventDispatcher<SKSEActionEvent>* dispatcher)
 	{
-		if (!evn || !evn->actor || !IsActorEnabled(evn->actor))
+		CharacterType charType{ CharacterType::NPC };
+
+		if (!evn || !evn->actor || !IsActorEnabled(evn->actor, charType))
 			return kEvent_Continue;
 
 		switch (evn->type) {
 
 		case SKSEActionEvent::kType_BeginDraw:
 			
-			HideQuiver(evn->actor, false);
+			HideQuiver(evn->actor, charType, true);
 			break;
 
 		case SKSEActionEvent::kType_BeginSheathe:
 
-			HideQuiver(evn->actor);
+			HideQuiver(evn->actor, charType, false);
 			break;
 		}
 
 		return kEvent_Continue;
 	}
 
-	Events gEvents;
-
-	void RegisterEventDispatch()
+	void Events::Register()
 	{
 		static bool InitDispatcher{ false };
 
 		if (InitDispatcher) return;
 
 #if UNEQUIPQUIVER_EXPORTS
-		g_EquipEventDispatcher->AddEventSink(&gEvents);
-		g_LoadGameEventDispatcher->AddEventSink(&gEvents);
-		g_initScriptEventDispatcher->AddEventSink(&gEvents);
-		g_objectLoadedEventDispatcher->AddEventSink(&gEvents);
-		g_switchRaceCompleteEventDispatcher->AddEventSink(&gEvents);
+		g_EquipEventDispatcher->AddEventSink(&instance);
+		g_LoadGameEventDispatcher->AddEventSink(&instance);
+		g_initScriptEventDispatcher->AddEventSink(&instance);
+		g_objectLoadedEventDispatcher->AddEventSink(&instance);
+		g_switchRaceCompleteEventDispatcher->AddEventSink(&instance);
 
 #elif UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 
 #define ADD_EVENT(ev, member) GetEventDispatcherList()-> ## member ##.AddEventSinkAddr(&ev, Addresses::AddEventSink_Internal_Addr); 
 
-		ADD_EVENT(gEvents, equipDispatcher);
-		ADD_EVENT(gEvents, loadGameEventDispatcher);
-		ADD_EVENT(gEvents, initScriptDispatcher);
-		ADD_EVENT(gEvents, objectLoadedDispatcher);
-		ADD_EVENT(gEvents, switchRaceCompleteDispatcher);
+		ADD_EVENT(instance, equipDispatcher);
+		ADD_EVENT(instance, loadGameEventDispatcher);
+		ADD_EVENT(instance, initScriptDispatcher);
+		ADD_EVENT(instance, objectLoadedDispatcher);
+		ADD_EVENT(instance, switchRaceCompleteDispatcher);
 #endif
 
-		if (skse_plugin::SKSE_Plugin::skse_msg_interface)
-			if (auto skse_action = static_cast<EventDispatcher<SKSEActionEvent>*>
-				(skse_plugin::SKSE_Plugin::skse_msg_interface->GetEventDispatcher(SKSEMessagingInterface::kDispatcher_ActionEvent))) {
+		if (skse_plugin::SKSE_Plugin::GetInstance().Sink<SKSEActionEvent>(SKSEMessagingInterface::kDispatcher_ActionEvent, &instance)) {
 
-				skse_action->AddEventSinkAddr(&gEvents, Addresses::AddEventSink_Internal_Addr);
+			Hooks_Handlers_Commit();
 
-				Hooks_Handlers_Commit();
-			}
+			InitDispatcher = true;
+		}
 
-		InitDispatcher = true;
-
-		_DMESSAGE("Event dispatcher registered successfully!");
+		if (InitDispatcher)
+			_DMESSAGE("Event dispatcher registered successfully!");
+		else
+			_ERROR("Event dispacther registration error!");
 	}
+
+	VectorHideNode Events::hideNode;
+	Events::LastAmmoEquipped Events::lastAmmo;
+	Events Events::instance;
 };

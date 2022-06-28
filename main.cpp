@@ -5,12 +5,12 @@ extern "C" {
 
 	bool SKSEPlugin_Query(const SKSEInterface * skse, PluginInfo * info)
 	{
-		return skse_plugin::SKSE_Plugin::Query(skse, info);
+		return skse_plugin::SKSE_Plugin::GetInstance().Query(skse, info);
 	}
 
 	bool SKSEPlugin_Load(const SKSEInterface * skse)
 	{
-		return skse_plugin::SKSE_Plugin::Load(skse);
+		return skse_plugin::SKSE_Plugin::GetInstance().Load(skse);
 	}
 
 #if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS

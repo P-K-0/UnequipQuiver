@@ -26,7 +26,8 @@ namespace EventsDispatch {
 
 	public:
 
-		explicit HideNode(const std::initializer_list<std::string>& list);
+		explicit HideNode(const std::initializer_list<std::string>& list)
+			{ std::copy(list.begin(), list.end(), std::back_inserter(vStrNodes)); }
 		HideNode() {}
 		virtual ~HideNode() {}
 
@@ -35,8 +36,8 @@ namespace EventsDispatch {
 	private:
 
 		std::vector<std::string> vStrNodes;
-		NiNode* root = nullptr;
-		NiAVObject* obj = nullptr;
+		NiNode* root{ nullptr };
+		NiAVObject* obj{ nullptr };
 	};
 
 	template<typename T = UInt32, int N = 2>
@@ -60,9 +61,9 @@ namespace EventsDispatch {
 
 		~LastAmmo() {}
 
-		const int size() const { return N; }
+		_NODISCARD const int size() const { return N; }
 
-		const T GetLast(int index, T id = T()) { return id == T() ? vAmmo[index] : vmAmmo[index][id]; }
+		_NODISCARD const T GetLast(int index, T id = T()) { return id == T() ? vAmmo[index] : vmAmmo[index][id]; }
 
 		void SetLast(int index, T value, T id = T()) 
 		{ 
@@ -120,8 +121,37 @@ namespace EventsDispatch {
 
 		virtual ~VectorHideNode() {}
 
-		HideNode& operator[](TypeNode index) { return data()[static_cast<int>(index)]; }
+		_NODISCARD HideNode& operator[](TypeNode index) { return data()[static_cast<int>(index)]; }
 	};
+
+	enum class CharacterType : std::uint32_t {
+
+		PC,
+		NPC,
+		Max
+	};
+
+	enum class TypeWeapon : std::uint32_t {
+		Nothing,
+		Bow,
+		CBow,
+		AnotherWeapon
+	};
+
+	enum class FlagsLastAmmo : std::uint32_t {
+
+		Nothing,
+		Stronger,
+		Amount,
+		StrongerAmount
+	};
+
+	static inline FlagsLastAmmo& operator|=(FlagsLastAmmo& a, const FlagsLastAmmo& b)
+	{
+		a = static_cast<FlagsLastAmmo>(static_cast<std::uint32_t>(a) | static_cast<std::uint32_t>(b));
+
+		return a;
+	}
 
 	class Events :
 		public BSTEventSink<TESEquipEvent>,
@@ -129,15 +159,7 @@ namespace EventsDispatch {
 		public BSTEventSink<TESObjectLoadedEvent>,
 		public BSTEventSink<TESInitScriptEvent>,
 		public BSTEventSink<SKSEActionEvent>,
-		public BSTEventSink<TESSwitchRaceCompleteEvent>
-	{
-
-		enum class TypeWeapon {
-			Nothing,
-			Bow,
-			CBow,
-			AnotherWeapon
-		};
+		public BSTEventSink<TESSwitchRaceCompleteEvent> {
 
 	public:
 
@@ -148,7 +170,6 @@ namespace EventsDispatch {
 		Events(Events&&) = delete;
 		Events& operator=(Events&&) = delete;
 
-		Events() {}
 		virtual ~Events() {}
 
 		virtual EventResult ReceiveEvent(TESEquipEvent* evn, EventDispatcher<TESEquipEvent>* dispatcher);
@@ -158,20 +179,20 @@ namespace EventsDispatch {
 		virtual EventResult ReceiveEvent(TESSwitchRaceCompleteEvent* evn, EventDispatcher<TESSwitchRaceCompleteEvent>* dispatcher);
 		virtual EventResult ReceiveEvent(SKSEActionEvent* evn, EventDispatcher<SKSEActionEvent>* dispatcher);
 
-		LastAmmoEquipped& GetLastAmmoEquipped() { return lastAmmo; }
+		static void Register();
+
+		static LastAmmoEquipped& GetLastAmmoEquipped() { return lastAmmo; }
 
 	private:
 
-		VectorHideNode hideNode;
-		LastAmmoEquipped lastAmmo;
-		UInt32 lastPlayerAmmo{ 0 };
+		Events() {}
 
 		template<typename Func = std::function<bool(InventoryEntryData*)>>
 		void VisitContainer(Actor* actor, Func func);
 
 		void VisitCell(TESObjectCELL* cell);
 
-		template<typename T, typename Func = std::function<void(Actor*)>>
+		template<typename T, typename Func = std::function<void(Actor*, CharacterType)>>
 		EventResult ActorEvent(T refr, Func func);
 
 		SInt32 CountItems(Actor* actor, TESForm* item);
@@ -182,25 +203,31 @@ namespace EventsDispatch {
 		int IsBolt(TESForm* form);
 		bool IsSpell(TESForm* form);
 		bool IsWeapon(TESForm* form);
-		bool IsActorEnabled(Actor* act);
 		bool IsInventoryOpen();
-		const bool IsPlayer(Actor* actor) { return (isPlayer = (actor == (*g_thePlayer))); }
 
-		void EquipQuiver(Actor* act, TESForm* form);
+		bool IsActorEnabled(Actor* actor, CharacterType& charType);
+
+		const CharacterType GetCharacterType(Actor* actor) { return (actor == (*g_thePlayer)) ? CharacterType::PC : CharacterType::NPC; }
+
+		void EquipQuiver(Actor* act, TESForm* form, CharacterType charType);
 		void UnequipQuiver(Actor* act, TESForm* form = nullptr, TypeWeapon isBow = TypeWeapon::Nothing);
-		void HideQuiver(Actor* act, bool sheathe = true);
 
-		void OnEquip(Actor* actor, TESForm* form);
-		void OnUnEquip(Actor* actor, TESForm* form);
+		void HideQuiver(Actor* act, CharacterType charType, bool drawn);
+		void HideQuiver(Actor* act, CharacterType charType) { HideQuiver(act, charType, act->actorState.IsWeaponDrawn()); }
 
-		bool isPlayer{ false };
-		UInt32 characterId{};
-		UInt32 raceId{};
+		void OnEquip(Actor* actor, TESForm* form, CharacterType charType);
+		void OnUnEquip(Actor* actor, TESForm* form, CharacterType charType);
+
+		void CheckLastAmmo(Actor* actor, TESForm* form, CharacterType& charType);
+		inline void SetLastAmmo(CharacterType& charType, UInt32 lastAmmo) { if (charType == CharacterType::PC) { lastPlayerAmmo = lastAmmo; } }
+
+		static VectorHideNode hideNode;
+		static LastAmmoEquipped lastAmmo;
+		
+		UInt32 lastPlayerAmmo;
+
+		static Events instance;
 	};
 
-	extern Events gEvents;
-
 	inline const UInt32 GetPlayerID() { return (*g_thePlayer)->formID; }
-
-	extern void RegisterEventDispatch();
 };

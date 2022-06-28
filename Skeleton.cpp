@@ -9,9 +9,8 @@ namespace Skeleton {
 		if (filename.empty()) return;
 
 		const size_t size_mem{ sizeof(NiStream) };
-		UInt8 memory[size_mem];
+		UInt8 memory[size_mem]{};
 
-		memset(&memory, 0, size_mem);
 		NiStream* nistream = (NiStream*)(memory);
 
 		std::string file{ "Data\\Meshes\\" + filename };

@@ -4,14 +4,6 @@
 
 namespace skse_plugin {
 
-	bool SKSE_Plugin::hasQuery{ false };
-
-	PluginHandle SKSE_Plugin::plugHandle ;
-
-	SKSEPapyrusInterface* SKSE_Plugin::skse_papyrus_interface{ nullptr };
-	SKSEMessagingInterface* SKSE_Plugin::skse_msg_interface{ nullptr };
-	SKSETaskInterface* SKSE_Plugin::skse_task_interface{ nullptr };
-
 	void SKSE_Plugin::MsgCallback(SKSEMessagingInterface::Message* msg) noexcept
 	{
 		using namespace UQ_Saves;
@@ -19,27 +11,27 @@ namespace skse_plugin {
 		switch (msg->type) {
 		case SKSEMessagingInterface::kMessage_DataLoaded:
 
-			UQ_Settings::UQSettings.ReadAllSettings();
+			UQ_Settings::Settings::GetInstance().ReadAllSettings();
 			break;
 
 		case SKSEMessagingInterface::kMessage_PostPostLoad:
 
-			EventsDispatch::RegisterEventDispatch();
+			EventsDispatch::Events::Register();
 			break;
 
 		case SKSEMessagingInterface::kMessage_PreLoadGame:
 
-			LoadSaves(msg->data, UQFlags::uqLoad);
+			LoadSaves(msg->data, LoadSavesFlag::Load);
 			break;
 
 		case SKSEMessagingInterface::kMessage_SaveGame:
 
-			LoadSaves(msg->data, UQFlags::uqSave);
+			LoadSaves(msg->data, LoadSavesFlag::Save);
 			break;
 
 		case SKSEMessagingInterface::kMessage_DeleteGame:
 
-			LoadSaves(msg->data, UQFlags::uqDelete);
+			LoadSaves(msg->data, LoadSavesFlag::Delete);
 			break;
 		}
 	}
@@ -78,8 +70,10 @@ namespace skse_plugin {
 			if (!Query(skse))
 				return false;
 
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 		if (!skse_papyrus_interface || !skse_papyrus_interface->Register(papyrus::RegisterFunctions)) 
 			return false;
+#endif
 
 		if (!skse_msg_interface || !skse_msg_interface->RegisterListener(plugHandle, "SKSE", MsgCallback))
 			return false;
@@ -158,4 +152,6 @@ namespace skse_plugin {
 
 		return true;
 	}
+
+	SKSE_Plugin SKSE_Plugin::instance;
 }

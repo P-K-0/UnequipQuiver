@@ -10,7 +10,7 @@ namespace UQ_Settings {
 		return std::string(buffer);
 	}
 
-	void UnequipQuiver_Settings::ReadSettings(const std::string& Filename, bool readDefault)
+	void Settings::ReadSettings(const std::string& Filename, bool readDefault)
 	{
 		_DMESSAGE("ReadSettings : %s", Filename.c_str());
 
@@ -59,6 +59,7 @@ namespace UQ_Settings {
 		READSETTINGS(bMultiBow);
 
 		READSETTINGS(bEquipStronger);
+		READSETTINGS(bEquipLargerAmount);
 
 		READSETTINGSS(sKeywords);
 		ParseKeywords(sKeywords);
@@ -86,8 +87,9 @@ namespace UQ_Settings {
 		READSETTINGSENUM(bHideBoltOnDraw);
 	}
 
-	void UnequipQuiver_Settings::ReadAllSettings()
+	void Settings::ReadAllSettings()
 	{
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 		DataHandler* data = DataHandler::GetSingleton();
 		const ModInfo* info{ nullptr };
 
@@ -98,33 +100,32 @@ namespace UQ_Settings {
 
 			return;
 		}
+#endif
 
 		ReadSettings(UnequipQuiverIni);
 	}
 
-	const bool UnequipQuiver_Settings::CheckExtraDataAmmo(const UInt32 id) const
+	const bool Settings::CheckExtraDataAmmo(const UInt32 id) const
 	{
-		if (bExtraData) {
+		if (!bExtraData)
+			return false;
 
-			Skeleton::Skeleton skeleton;
+		Skeleton::Skeleton skeleton;
 
-			return skeleton.HasExtraData(id, NodeUQ);
-		}
-
-		return false;
+		return skeleton.HasExtraData(id, NodeUQ);
 	}
 
-	void UnequipQuiver_Settings::Set(const char* id, float value)
+	void Settings::Set(const char* id, float value)
 	{
 
 	}
 
-	void UnequipQuiver_Settings::Set(const char* id, const char* str)
+	void Settings::Set(const char* id, const char* str)
 	{
 
 	}
 
-	void UnequipQuiver_Settings::Set(const char* id, int value)
+	void Settings::Set(const char* id, int value)
 	{
 		for (auto& s : vSettings)
 			if (_strcmpi(s.first.c_str(), id) == 0)
@@ -135,7 +136,7 @@ namespace UQ_Settings {
 				}
 	}
 
-	void UnequipQuiver_Settings::Set(const char* id, bool value)
+	void Settings::Set(const char* id, bool value)
 	{
 		for (auto& s : vSettings)
 			if (_strcmpi(s.first.c_str(), id) == 0)
@@ -158,6 +159,8 @@ namespace UQ_Settings {
 				case SettingsIndex::CheckWeaponByKeywords: bCheckWeaponByKeywords = value; return;
 
 				case SettingsIndex::EquipStronger: bEquipStronger = value; return;
+
+				case SettingsIndex::EquipLargerAmount: bEquipLargerAmount = value; return;
 
 				case SettingsIndex::Savefile: bSavefile = value; return;
 
@@ -211,7 +214,7 @@ namespace UQ_Settings {
 		}
 	}
 
-	void UnequipQuiver_Settings::ParseKeywords(const std::string& str)
+	void Settings::ParseKeywords(const std::string& str)
 	{
 		KeysList.clear();
 
@@ -223,7 +226,7 @@ namespace UQ_Settings {
 			sort(KeysList);	
 	}
 
-	void UnequipQuiver_Settings::ParseBlackList(const std::string& str, BlackList& blackList)
+	void Settings::ParseBlackList(const std::string& str, BlackList& blackList)
 	{
 		blackList.clear();
 
@@ -272,5 +275,5 @@ namespace UQ_Settings {
 			sort(blackList);
 	}
 
-	UnequipQuiver_Settings UQSettings;
+	Settings Settings::instance;
 };

@@ -6,17 +6,18 @@
 
 namespace papyrus {
 
+#if UNEQUIPQUIVERSE_EXPORTS || UNEQUIPQUIVERAE_EXPORTS
 	void OnSettingChangeInt(StaticFunctionTag* base, BSFixedString a_ID, SInt32 value)
-		{ UQ_Settings::UQSettings.Set(a_ID.c_str(), value); }
+		{ UQ_Settings::Settings::GetInstance().Set(a_ID.c_str(), value); }
 
 	void OnSettingChangeBool(StaticFunctionTag* base, BSFixedString a_ID, bool value)
-		{ UQ_Settings::UQSettings.Set(a_ID.c_str(), value); }
+		{ UQ_Settings::Settings::GetInstance().Set(a_ID.c_str(), value); }
 
 	void OnSettingChangeFloat(StaticFunctionTag* base, BSFixedString a_ID, float value)
-		{ UQ_Settings::UQSettings.Set(a_ID.c_str(), value); }
+		{ UQ_Settings::Settings::GetInstance().Set(a_ID.c_str(), value); }
 
 	void OnSettingChangeString(StaticFunctionTag* base, BSFixedString a_ID, BSFixedString value)
-		{ UQ_Settings::UQSettings.Set(a_ID.c_str(), value.c_str()); }
+		{ UQ_Settings::Settings::GetInstance().Set(a_ID.c_str(), value.c_str()); }
 
 	bool RegisterFunctions(VMClassRegistry* registry)
 	{
@@ -29,4 +30,5 @@ namespace papyrus {
 
 		return true;
 	}
+#endif
 }

@@ -23,14 +23,12 @@ namespace UQ_Saves {
 		return static_cast<char *>(addr);
 	}
 
-	enum class UQFlags {
-		uqNothing,
-		uqLoad,
-		uqSave,
-		uqDelete
+	enum class LoadSavesFlag {
+		Nothing,
+		Load,
+		Save,
+		Delete
 	};
-
-	inline int UQFlagsToInt(const UQFlags& f) { return static_cast<int>(f); }
 
 	static const std::vector<std::string> str_flag = { "", "loaded", "saved", "deleted" };
 
@@ -44,7 +42,7 @@ namespace UQ_Saves {
 		UQSaves& operator=(const UQSaves&) = delete;
 		UQSaves& operator=(UQSaves&&) = delete;
 
-		UQSaves(const std::string filename, const UQFlags& flag, EventsDispatch::Events::LastAmmoEquipped& last);
+		UQSaves(const std::string filename, const LoadSavesFlag& flag, EventsDispatch::Events::LastAmmoEquipped& last);
 		~UQSaves() {}
 
 	private:
@@ -59,5 +57,5 @@ namespace UQ_Saves {
 		std::string file_path; 
 	};
 
-	extern void LoadSaves(const void * const filename, UQFlags flags); 
+	extern void LoadSaves(const void * const filename, LoadSavesFlag flags);
 };
