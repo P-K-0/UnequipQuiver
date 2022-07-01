@@ -255,9 +255,9 @@ namespace EventsDispatch {
 
 	void Events::CheckLastAmmo(Actor* actor, TESForm* form, CharacterType& charType)
 	{
-		auto& settings = UQ_Settings::Settings::GetInstance();
-
 		if (charType == CharacterType::PC && lastPlayerAmmo != 0) { 
+			
+			auto& settings = UQ_Settings::Settings::GetInstance();
 
 			TESForm* frmNewItem{ nullptr };
 			TESAmmo* ammo{ nullptr };
@@ -503,7 +503,7 @@ namespace EventsDispatch {
 
 	bool Events::IsActorEnabled(Actor* actor, CharacterType& charType)
 	{
-		if (actor->IsDead(1) && !actor->race)
+		if (actor->IsDead(1) || !actor->race)
 			return false;
 
 		auto& settings = UQ_Settings::Settings::GetInstance();
