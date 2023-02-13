@@ -77,6 +77,7 @@ namespace UQ_Settings {
 		ParseBlackList(sBlackListCharacter, BlackListCharacter);
 
 		READSETTINGS(bExtraData);
+		READSETTINGS(bFavorites);
 
 		READSETTINGSENUM(bHideQuiverOnSheathe);
 
@@ -115,6 +116,23 @@ namespace UQ_Settings {
 		return skeleton.HasExtraData(id, NodeUQ);
 	}
 
+	const bool Settings::CheckFavoritesAmmo(InventoryEntryData* item)
+	{
+		if (!bFavorites)
+			return false;
+
+		if (item->extendDataList)
+			for (UInt32 idx = 0; idx < item->extendDataList->Count(); idx++) {
+
+				BaseExtraList* extraLst = item->extendDataList->GetNthItem(idx);
+
+				if (extraLst && item->type)
+					return extraLst->HasType(kExtraData_Hotkey);
+			}
+
+		return false;
+	}
+
 	void Settings::Set(const char* id, float value)
 	{
 
@@ -127,70 +145,69 @@ namespace UQ_Settings {
 
 	void Settings::Set(const char* id, int value)
 	{
-		for (auto& s : vSettings)
-			if (_strcmpi(s.first.c_str(), id) == 0)
-				switch (s.second) {
+		switch (std::hash<std::string>{}(id)) {
 
-				case SettingsIndex::ReEquipType: iReEquipType = static_cast<QuiverReEquipType>(value); return;
+		case "iReEquipType"_hash:
 
-				}
+			iReEquipType = static_cast<QuiverReEquipType>(value); break;
+		}
 	}
 
 	void Settings::Set(const char* id, bool value)
 	{
-		for (auto& s : vSettings)
-			if (_strcmpi(s.first.c_str(), id) == 0)
-				switch (s.second) {
+		switch (std::hash<std::string>{}(id)) {
 
-				case SettingsIndex::EnablePC: bEnablePC = value; return;
+		case "bEnablePC"_hash: bEnablePC = value; break;
 
-				case SettingsIndex::EnableNPC: bEnableNPC = value; return;
+		case "bEnableNPC"_hash: bEnableNPC = value; break;
 
-				case SettingsIndex::Spell: bSpell = value; return;
+		case "bSpell"_hash: bSpell = value; break;
 
-				case SettingsIndex::Weapon: bWeapon = value; return;
+		case "bWeapon"_hash: bWeapon = value; break;
 
-				case SettingsIndex::Shield: bShield = value; return;
+		case "bShield"_hash: bShield = value; break;
 
-				case SettingsIndex::Bow: bBow = value; return;
+		case "bBow"_hash: bBow = value; break;
 
-				case SettingsIndex::Crossbow: bCrossbow = value; return;
+		case "bCrossbow"_hash: bCrossbow = value; break;
 
-				case SettingsIndex::CheckWeaponByKeywords: bCheckWeaponByKeywords = value; return;
+		case "bCheckWeaponByKeywords"_hash: bCheckWeaponByKeywords = value; break;
 
-				case SettingsIndex::EquipStronger: bEquipStronger = value; return;
+		case "bEquipStronger"_hash: bEquipStronger = value; break;
 
-				case SettingsIndex::EquipLargerAmount: bEquipLargerAmount = value; return;
+		case "bEquipLargerAmount"_hash: bEquipLargerAmount = value; break;
 
-				case SettingsIndex::Savefile: bSavefile = value; return;
+		case "bSavefile"_hash: bSavefile = value; break;
 
-				case SettingsIndex::MultiBow: bMultiBow = value; return;
+		case "bMultiBow"_hash: bMultiBow = value; break;
 
-				case SettingsIndex::BlackListAmmo: bBlackListAmmo = value; return;
+		case "bBlackListAmmo"_hash: bBlackListAmmo = value; break;
 
-				case SettingsIndex::BlackListRace: bBlackListRace = value; return;
+		case "bBlackListRace"_hash: bBlackListRace = value; break;
 
-				case SettingsIndex::BlackListCharacter: bBlackListCharacter = value; return;
+		case "bBlackListCharacter"_hash: bBlackListCharacter = value; break;
 
-				case SettingsIndex::ExtraData: bExtraData = value; return;
+		case "bExtraData"_hash: bExtraData = value; break;
 
-				case SettingsIndex::HideQuiverOnSheathe: bHideQuiverOnSheathe[CharacterType::PC] = value; return;
+		case "bFavorites"_hash: bFavorites = value; break;
 
-				case SettingsIndex::HideQuiverOnDraw: bHideQuiverOnDraw[CharacterType::PC] = value; return;
+		case "bHideQuiverOnSheathe"_hash: bHideQuiverOnSheathe[CharacterType::PC] = value; break;
 
-				case SettingsIndex::HideBoltOnSheathe: bHideBoltOnSheathe[CharacterType::PC] = value; return;
+		case "bHideQuiverOnDraw"_hash: bHideQuiverOnDraw[CharacterType::PC] = value; break;
 
-				case SettingsIndex::HideBoltOnDraw: bHideBoltOnDraw[CharacterType::PC] = value; return;
+		case "bHideBoltOnSheathe"_hash: bHideBoltOnSheathe[CharacterType::PC] = value; break;
 
-				case SettingsIndex::HideQuiverOnSheatheNPC: bHideQuiverOnSheathe[CharacterType::NPC] = value; return;
+		case "bHideBoltOnDraw"_hash: bHideBoltOnDraw[CharacterType::PC] = value; break;
 
-				case SettingsIndex::HideQuiverOnDrawNPC: bHideQuiverOnDraw[CharacterType::NPC] = value; return;
+		case "bHideQuiverOnSheatheNPC"_hash: bHideQuiverOnSheathe[CharacterType::NPC] = value; break;
 
-				case SettingsIndex::HideBoltOnSheatheNPC: bHideBoltOnSheathe[CharacterType::NPC] = value; return;
+		case "bHideQuiverOnDrawNPC"_hash: bHideQuiverOnDraw[CharacterType::NPC] = value; break;
 
-				case SettingsIndex::HideBoltOnDrawNPC: bHideBoltOnDraw[CharacterType::NPC] = value; return;
+		case "bHideBoltOnSheatheNPC"_hash: bHideBoltOnSheathe[CharacterType::NPC] = value; break;
 
-				}
+		case "bHideBoltOnDrawNPC"_hash: bHideBoltOnDraw[CharacterType::NPC] = value; break;
+
+		}
 	}
 
 	template<typename Func = std::function<void(const std::string&)>>
@@ -230,7 +247,7 @@ namespace UQ_Settings {
 	{
 		blackList.clear();
 
-		std::regex reg{ "(\\w*.\\w*):(\\w*)"};
+		std::regex reg{ R"((\s*\w*.\w*):(\w*))"};
 		std::smatch matches;
 
 		char *end;

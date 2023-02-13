@@ -198,13 +198,13 @@ namespace EventsDispatch {
 		SInt32 CountItems(Actor* actor, TESForm* item);
 
 		bool IsWorn(InventoryEntryData* item);
+		bool IsFavorites(InventoryEntryData* item);
 		bool IsShield(TESForm* form);
 		TypeWeapon IsBow(TESForm* form);
 		int IsBolt(TESForm* form);
 		bool IsSpell(TESForm* form);
 		bool IsWeapon(TESForm* form);
 		bool IsInventoryOpen();
-
 		bool IsActorEnabled(Actor* actor, CharacterType& charType);
 
 		const CharacterType GetCharacterType(Actor* actor) { return (actor == (*g_thePlayer)) ? CharacterType::PC : CharacterType::NPC; }

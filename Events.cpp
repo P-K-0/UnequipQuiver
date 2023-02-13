@@ -10,7 +10,7 @@
 namespace EventsDispatch {
 
 #define UNEQUIPITEMEX(actor, item, sound) \
-	bool checkRet = settings.CheckBlackListAmmo(item->type->formID) | settings.CheckExtraDataAmmo(item->type->formID); \
+	bool checkRet = settings.CheckBlackListAmmo(item->type->formID) | settings.CheckExtraDataAmmo(item->type->formID) | settings.CheckFavoritesAmmo(item); \
     if (!checkRet) papyrusActor::UnequipItemEx(actor, item->type, 0, false, sound); 
 
 #define UNEQUIPITEM(actor, item) UNEQUIPITEMEX(actor, item, true)
@@ -87,9 +87,23 @@ namespace EventsDispatch {
 		return false;
 	}
 
+	bool Events::IsFavorites(InventoryEntryData* item)
+	{
+		if (item->extendDataList)
+			for (UInt32 idx = 0; idx < item->extendDataList->Count(); idx++) {
+			
+				BaseExtraList* extraLst = item->extendDataList->GetNthItem(idx);
+
+				if (extraLst && item->type)
+					return extraLst->HasType(kExtraData_Hotkey);
+			}
+
+		return false;
+	}
+
 	bool Events::IsShield(TESForm* form)
 	{
-		TESObjectARMO* armo = nullptr;
+		TESObjectARMO* armo{ nullptr };
 
 		if (form && form->IsArmor() && (armo = DYNAMIC_CAST(form, TESForm, TESObjectARMO)))
 			for (int i = 0; i < armo->keyword.numKeywords; i++) {
@@ -105,7 +119,7 @@ namespace EventsDispatch {
 
 	TypeWeapon Events::IsBow(TESForm* form)
 	{
-		TESObjectWEAP* weap = nullptr;
+		TESObjectWEAP* weap{ nullptr };
 
 		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)))
 			switch (weap->type()) {
@@ -126,7 +140,7 @@ namespace EventsDispatch {
 
 	int Events::IsBolt(TESForm* form)
 	{
-		TESAmmo* ammo = nullptr;
+		TESAmmo* ammo{ nullptr };
 
 		if (form && (ammo = DYNAMIC_CAST(form, TESForm, TESAmmo)))
 			return ammo->isBolt() ? 1 : 0;
@@ -151,7 +165,7 @@ namespace EventsDispatch {
 	{
 		auto& settings = UQ_Settings::Settings::GetInstance();
 
-		TESObjectWEAP* weap = nullptr;
+		TESObjectWEAP* weap{ nullptr };
 
 		if (form && form->IsWeapon() && (weap = DYNAMIC_CAST(form, TESForm, TESObjectWEAP)) && !settings.empty())
 			for (int i = 0; i < weap->keyword.numKeywords; i++) {
@@ -176,7 +190,7 @@ namespace EventsDispatch {
 #endif
 
 		if (stringHolder && menu)
-			return menu->IsMenuOpen(&stringHolder->inventoryMenu);
+			return menu->IsMenuOpen(&stringHolder->inventoryMenu) | menu->IsMenuOpen(&stringHolder->favoritesMenu);
 
 		return false;
 	}
@@ -240,17 +254,20 @@ namespace EventsDispatch {
 			case TypeWeapon::Bow:
 
 				hideNode[TypeNode::Quiver].Hide(act, settings.IsHideQuiverOnSheathe(drawn, charType));
-				break;
+				//hideNode[TypeNode::Bolt].Hide(act, settings.IsHideBoltOnSheathe(false, charType));
+				
+				return;
 
 			case TypeWeapon::CBow:
 
 				hideNode[TypeNode::Bolt].Hide(act, settings.IsHideBoltOnSheathe(drawn, charType));
-				break;
+				//hideNode[TypeNode::Quiver].Hide(act, settings.IsHideQuiverOnSheathe(false, charType));
 
-			case TypeWeapon::AnotherWeapon:
-			default:
-				break;
+				return;
 			}
+
+		hideNode[TypeNode::Quiver].Hide(act, settings.IsHideQuiverOnSheathe(false, charType));
+		hideNode[TypeNode::Bolt].Hide(act, settings.IsHideBoltOnSheathe(false, charType));
 	}
 
 	void Events::CheckLastAmmo(Actor* actor, TESForm* form, CharacterType& charType)
@@ -333,7 +350,6 @@ namespace EventsDispatch {
 
 	void Events::OnEquip(Actor* actor, TESForm* form, CharacterType charType)
 	{
-
 		if (!actor || !form || form->IsArmor())
 			return;
 
@@ -492,7 +508,7 @@ namespace EventsDispatch {
 	template<typename T, typename Func>
 	EventResult Events::ActorEvent(T refr, Func func)
 	{
-		Actor* act = nullptr;
+		Actor* act{ nullptr };
 		CharacterType charType;
 
 		if (refr && (act = DYNAMIC_CAST(refr, TESObjectREFR, Actor)) && IsActorEnabled(act, charType))
@@ -543,7 +559,7 @@ namespace EventsDispatch {
 		if (!evn) return kEvent_Continue;
 
 		TESForm* form = LookupFormByID(GetPlayerID());
-		TESObjectREFR* refr = nullptr;
+		TESObjectREFR* refr{ nullptr };
 
 		if (form && (refr = DYNAMIC_CAST(form, TESForm, TESObjectREFR)))
 			VisitCell(refr->parentCell);
@@ -556,7 +572,7 @@ namespace EventsDispatch {
 		if (!evn || !evn->loaded) return kEvent_Continue;
 
 		TESForm* form = LookupFormByID(evn->formId);
-		TESObjectREFR* refr = nullptr;
+		TESObjectREFR* refr{ nullptr };
 
 		if (form && (refr = DYNAMIC_CAST(form, TESForm, TESObjectREFR)))
 			ActorEvent(refr, [&](Actor* act, CharacterType charType)  {

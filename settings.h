@@ -18,6 +18,7 @@ namespace UQ_Settings {
 #endif
 
 	enum class QuiverReEquipType {
+
 		Default,
 		Last,
 		Stronger
@@ -39,6 +40,7 @@ namespace UQ_Settings {
 	constexpr bool Default_bBlackListRace = false;
 	constexpr bool Default_bBlackListCharacter = false;
 	constexpr bool Default_bExtraData = true;
+	constexpr bool Default_bFavorites = false;
 	constexpr bool Default_bHideQuiverOnSheathe = false;
 	constexpr bool Default_bHideQuiverOnDraw = false;
 	constexpr bool Default_bHideBoltOnSheathe = false;
@@ -97,76 +99,6 @@ namespace UQ_Settings {
 
 		CSimpleIni ini;
 		SI_Error lastErr{};
-	};
-
-	enum class SettingsIndex : std::uint32_t {
-
-		EnablePC,
-		EnableNPC,
-
-		Spell,
-		Weapon,
-		Shield,
-		Bow,
-		Crossbow,
-
-		CheckWeaponByKeywords,
-
-		ReEquipType,
-
-		EquipStronger,
-		EquipLargerAmount,
-
-		Savefile,
-		MultiBow,
-
-		BlackListAmmo,
-		BlackListRace,
-		BlackListCharacter,
-
-		ExtraData,
-
-		HideQuiverOnSheathe,
-		HideQuiverOnDraw,
-		HideBoltOnSheathe,
-		HideBoltOnDraw,
-
-		HideQuiverOnSheatheNPC,
-		HideQuiverOnDrawNPC,
-		HideBoltOnSheatheNPC,
-		HideBoltOnDrawNPC
-	};
-
-	using PairSetting = std::pair<std::string, SettingsIndex>;
-
-#define PAIRSETTING(a) PairSetting("b" # a, SettingsIndex:: ## a)
-
-	static std::vector<PairSetting> vSettings {
-		PAIRSETTING(EnablePC),
-		PAIRSETTING(EnableNPC),
-		PAIRSETTING(Spell),
-		PAIRSETTING(Weapon),
-		PAIRSETTING(Shield),
-		PAIRSETTING(Bow),
-		PAIRSETTING(Crossbow),
-		PAIRSETTING(CheckWeaponByKeywords),
-		PAIRSETTING(ReEquipType),
-		PAIRSETTING(EquipStronger),
-		PAIRSETTING(EquipLargerAmount),
-		PAIRSETTING(Savefile),
-		PAIRSETTING(MultiBow),
-		PAIRSETTING(BlackListAmmo),
-		PAIRSETTING(BlackListRace),
-		PAIRSETTING(BlackListCharacter),
-		PAIRSETTING(ExtraData),
-		PAIRSETTING(HideQuiverOnSheathe),
-		PAIRSETTING(HideQuiverOnDraw),
-		PAIRSETTING(HideBoltOnSheathe),
-		PAIRSETTING(HideBoltOnDraw),
-		PAIRSETTING(HideQuiverOnSheatheNPC),
-		PAIRSETTING(HideQuiverOnDrawNPC),
-		PAIRSETTING(HideBoltOnSheatheNPC),
-		PAIRSETTING(HideBoltOnDrawNPC)
 	};
 
 	using CharacterType = EventsDispatch::CharacterType;
@@ -246,6 +178,7 @@ namespace UQ_Settings {
 		const bool CheckBlackListCharacter(const UInt32 id) const { return (!BlackListCharacter.empty() && bBlackListCharacter ? binary_search(BlackListCharacter, id) : false); }
 
 		const bool CheckExtraDataAmmo(const UInt32 id) const;
+		const bool CheckFavoritesAmmo(InventoryEntryData* item);
 
 		void Set(const char* id, float value);
 		void Set(const char* id, const char* str);
@@ -272,6 +205,7 @@ namespace UQ_Settings {
 		bool bBlackListRace{ Default_bBlackListRace };
 		bool bBlackListCharacter{ Default_bBlackListCharacter};
 		bool bExtraData{ Default_bExtraData };
+		bool bFavorites{ Default_bFavorites };
 
 		CharacterSelected<bool> bHideQuiverOnSheathe{ Default_bHideQuiverOnSheathe };
 		CharacterSelected<bool> bHideQuiverOnDraw{ Default_bHideQuiverOnDraw };
